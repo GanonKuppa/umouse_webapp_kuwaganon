@@ -100,7 +100,11 @@ def set_gamepad_input2key_dict():
     key_dict["cross_x"] = cross_x
     key_dict["cross_y"] = cross_y
 
-   
+def on_disconnect(client, userdata, flag, rc)   :
+    if rc != 0:
+        print("Unexpected disconnection.")
+        end_DXlib()
+        exit()
 
 def create_mqtt_client():
     host = MQTT_BROKER_IP
@@ -111,6 +115,7 @@ def create_mqtt_client():
 
     client.connect(host, port=port, keepalive=60)
     client.publish("presence","this is " + __file__)
+    client.on_disconnect = on_disconnect
     return client
 
 
