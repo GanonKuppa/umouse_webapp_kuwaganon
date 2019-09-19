@@ -1,0 +1,6 @@
+{
+    "MQTT_BROKER_IP":"localhost",
+    "MQTT_BROKER_PORT": 1883,
+    "LOOP_TIME":0.02,
+    "RECONECT_GAMEPAD_RETRY_TIME":3
+}

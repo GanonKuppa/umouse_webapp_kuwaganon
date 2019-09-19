@@ -1,0 +1,277 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>μMouse Browser Console </title>
+
+  <!-- フォントの読み込み -->
+  <link href="https://fonts.googleapis.com/css?family=Inconsolata|Press+Start+2P|Source+Code+Pro" rel="stylesheet">
+  <!-- BootstrapのCSS読み込み -->
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <!-- jQuery読み込み -->
+  <script src="./js/jquery-latest.js"></script>
+  <!-- BootstrapのJS読み込み -->
+  <script src="./js/bootstrap.min.js"></script>
+  <!-- socket.ioを使うためのライブラリの読み込み -->
+  <script type="text/javascript" src="/socket.io/socket.io.js"></script>
+  <!-- cssの読み込み -->
+  <link href="./css/graph.css" rel="stylesheet">
+  <!-- dygraphの読み込み -->
+  <link rel="stylesheet" src="./css/dygraph.min.css" />
+  <script src="./js/dygraph.min.js"></script>
+
+
+
+
+  <!--javascriptの記述 -->
+  <script type="text/javascript" src="./js/util.js"></script>
+  <script type="text/javascript">
+    var logno_topic_list = 0;
+    var logno_server_status = 0;
+
+    //printfコンソール用グローバル変数
+    var last_msg = "";
+    var logno_message = 0;
+    var scroll_flag = false;
+    var logno_console = 0;
+    var message_len = 250;
+
+    var server_ip = "flandre.local";
+    var server_port = "3030";
+
+
+
+
+    $(document).ready(function() {
+      $("#header").load("header.html");
+      $("#footer").load("footer.html");
+
+      //サーバとのsocket_ioでの接続
+      var s = io.connect('http://' + server_ip + ':' + server_port);
+      // 接続確立時
+      s.on("connect", function() {
+        s.emit("C2S:mqtt-sub/query_mqtt_topic", {
+          value: "query"
+        });
+        console.log("con");
+
+        topics = "TEST, presence, mouse, gamepad";
+      });
+      // 接続切断時
+      s.on("disconnect", function(client) {
+        console.log("dis_con");
+      });
+
+      //mqttのメッセージをサーバーが受信時
+      s.on("mqtt_message", function(data) {
+        //console.log(data);
+        topic = data.topic;
+        payload = data.payload;
+
+        //console.log(topic);
+        if (topic == "mouse") {
+
+          var data_view = new DataView(payload);
+          var intList = [];
+          for (var i = 0; i < message_len; i = i + 1) {
+            intList.push(data_view.getUint8(i, true));
+          }
+
+          reflectData(intList);
+        }
+
+      });
+
+      //受信したデータを画面に反映
+      function reflectData(intList) {
+        //console.log("reflectData");
+        var sum = 0;
+        for (var i = 7; i < message_len; i++) sum += intList[i];
+        sum = sum % 256;
+        if (sum != intList[6]) {
+          console.log("chksum err" + intList[6] + "  " + sum);
+          return;
+        }
+
+
+        timestamp = intList[11] + (intList[10] << 8) + (intList[9] << 16) + (intList[8] << 24);
+        byte_list = [100, 102, 104, 106, 108, 110, 112, 114, 116, 118, 120, 122, 124, 126, 128, 130, 134, 136, 138, 140, 142, 144, 146, 148, 150]
+        datas = new Array(byte_list.length + 1);
+        datas[0] = timestamp / 1000.0;
+        for (var i = 0; i < byte_list.length; i++) {
+          byte_num = byte_list[i];
+          var offset = 0; //parseFloat(GetQueryString().offset);
+          var prop = 1; //parseFloat(GetQueryString().prop);
+          var val = intList[byte_num + 1] + (intList[byte_num] << 8);
+          if (val > 32767) val = val - 65536;
+          val = (val - offset) * prop;
+          datas[i + 1] = val;
+        }
+        console.log(datas);
+        updateGraph(datas);
+      }
+
+
+    });
+  </script>
+
+
+
+</head>
+
+<body>
+
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-lg-12">
+        <br>
+        <div id="div_g0" style="width: 100%; height:500px;">　　　</div>
+      </div>
+      <div class="col-lg-12">
+        <br>
+        <div id="div_g1" style="width: 100%; height:500px;">　　　</div>
+      </div>
+      <div class="col-lg-12">
+        <br>
+        <div id="div_g2" style="width: 100%; height:500px;">　　　</div>
+      </div>
+      <div class="col-lg-12">
+        <br>
+        <div id="div_g3" style="width: 100%; height:500px;">　　　</div>
+      </div>
+      <div class="col-lg-12">
+        <br>
+        <div id="div_g4" style="width: 100%; height:500px;">　　　</div>
+      </div>
+      <div class="col-lg-12">
+        <br>
+        <div id="div_g5" style="width: 100%; height:500px;">　　　</div>
+      </div>
+      <div class="col-lg-12">
+        <br>
+        <div id="div_g6" style="width: 100%; height:500px;">　　　</div>
+      </div>
+      <div class="col-lg-12">
+      </div>
+      <br>
+      <div id="div_g7" style="width: 100%; height:500px;">　　　</div>
+      <div class="col-lg-12">
+        <br>
+        <div id="div_g8" style="width: 100%; height:500px;">　　　</div>
+      </div>
+      <div class="col-lg-12">
+        <br>
+        <div id="div_g9" style="width: 100%; height:500px;">　　　</div>
+      </div>
+
+    </div>
+
+  </div>
+  <br>
+  <p><b>表示の選択 </b><br>
+    <input type="radio" name="mode" value="uint" checked checked onclick="func_mode()"> uint
+    <input type="radio" name="mode" value="int" onclick="func_mode()"> int
+    <input type="radio" name="mode" value="decode" onclick="func_mode()"> decode
+  </p>
+
+  <p><b>Stop/Play </b><br>
+    <input type="radio" name="state" value="play" checked onclick="func_play()">play
+    <input type="radio" name="state" value="stop">stop
+  </p>
+  <p><b>グラフのバッファ数 </b><br>
+    <input type="text" name="buff_size_tb" value="800" style="color:black;">
+    <input type="button" value=" set " onclick="func_set()" style="color:black;"><br>
+
+
+    </div>
+
+    <script type="text/javascript">
+      var graph_titles = ["t_ang_a", "t_ang_v gyro_ang_v", "t_ang accum_ang", "t_a", "t_v enc_v", "t_x accum_x", "wall", "v", "ang", "v_FF ang ang_FF"];
+      var graph_buff_size = 10;
+      var graphs = [];
+      var graph_datas = [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ];
+
+      for (var i = 0; i < 10; i++) {
+        var g = new Dygraph(document.getElementById("div_g" + i), graph_datas[i], {
+          drawPoints: true,
+          //showRoller: true,
+          //valueRange: [6, 10.0],
+          //rollPeriod: 2,
+          labels: ['Time', 'val','val2','val3'],
+          title: graph_titles[i],
+          legend: 'always',
+          animatedZooms: true,
+          showRangeSelector: true,
+          rangeSelectorHeight: 30,
+          rangeSelectorPlotStrokeColor: "rgb(0,200,0)",
+          rangeSelectorPlotFillColor: "rgb(60,60,00)",
+          axisLabelWidth: 100,
+          titleHeight: 100,
+          color: "rgb(0,200,0)",
+          rangeSelectorHeight: 20,
+          axisLineWidth: 0.5
+        });
+        graphs.push(g);
+      }
+
+      // It sucks that these things aren't objects, and we need to store state in window.
+      function updateGraph(datas) {
+
+        if ($('input[name=state]:checked').val() === 'play') {
+          graph_datas[0].push([datas[0], datas[1],0,0]); // t_ang_a
+          graph_datas[1].push([datas[0], datas[2], datas[5],0]); // t_ang_v gyro_ang_v
+          graph_datas[2].push([datas[0], datas[3], datas[4],0]); // t_ang accum_ang
+          graph_datas[3].push([datas[0], datas[6], datas[10],0]); // t_a, acc_v_a
+          graph_datas[4].push([datas[0], datas[7], datas[12],0]); // t_v enc_v
+          graph_datas[5].push([datas[0], datas[8], datas[9],0]); // t_x accum_x
+          graph_datas[6].push([datas[0], datas[13], datas[14], datas[15]]); // wall
+          graph_datas[7].push([datas[0], datas[16], datas[17], datas[18]]); // v
+          graph_datas[8].push([datas[0], datas[19], datas[20], datas[21]]); // ang
+          graph_datas[9].push([datas[0], datas[22], datas[23],0]); // v FF ang FF
+        }
+        if (graph_datas[0].length < graph_buff_size) {
+          for (var i = 0; i < 10; i++) {
+            graphs[i].updateOptions({
+              'file': graph_datas[i]
+            });
+          }
+        }
+        else {
+          for (var i = 0; i < 10; i++) {
+            graph_datas[i].shift();
+            graphs[i].updateOptions({
+              'file': graph_datas[i]
+            });
+          }
+        }
+
+      }
+      function func_play() {
+        //data_move = [];
+      }
+
+        function func_mode() {
+          //data_move = [];
+        }
+
+        function func_set() {
+//          data_move = [];
+//          graph_buff_size = parseInt($('input[name=buff_size_tb]').val(), 10);
+        }
+    </script>
+
+</body>
+
+</html>

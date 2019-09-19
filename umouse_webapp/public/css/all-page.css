@@ -1,0 +1,111 @@
+@charset "utf-8";
+
+* {
+  font-size: 25px;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+body {
+  /* Margin bottom by footer height */
+  margin-bottom: 60px;
+  background-image: url(../image/bg.png);
+}
+
+table {
+    width: 530px;
+    border: 1px #E3E3E3 solid;
+    border-collapse: collapse;
+    border-spacing: 0;
+    table-layout: auto;
+}
+
+th {
+    padding: 5px;
+    border: #E3E3E3 solid;
+    border-width: 0 0 1px 1px;
+    background: rgba(210,0,0,0.2);
+    font-weight: bold;
+    line-height: 120%;
+    text-align: center;
+}
+
+tr:hover{
+background-color:rgba(0,0,210,0.25);
+}
+
+td {
+    padding: 5px;
+    border: 1px #E3E3E3 solid;
+    border-width: 0 0 1px 1px;
+    text-shadow: 1px 1px 1px rgba(100,100,100,1.0);
+    text-align:right;
+    font-family: 'Inconsolata', 'Source Code Pro','ＭＳ ゴシック';
+}
+
+.nowrap{
+    white-space:nowrap;
+    overflow:hidden;
+}
+
+/* navbar 全体の背景色とボーダーカラー */
+.navbar-default {
+background-color: rgb(10, 111, 1);
+}
+
+font {
+  font-family: 'Inconsolata', 'ＭＳ ゴシック','Source Code Pro';
+}
+
+/* navbar テキストカラー */
+.navbar-default .navbar-nav > li > a {
+color: #ffffff;
+}
+
+/* navbar Brandのカラー */
+.navbar-default .navbar-brand {
+color: #ffff00;
+
+}
+.navbar-default .navbar-brand:focus,
+.navbar-default .navbar-brand:hover {
+color: #ff0000;
+background-color: transparent;
+}
+
+.panel-contents{
+  height:500px;
+  overflow:scroll;
+  background-color:rgba(0,0,0,0.75);
+  color:#FFF;
+  resize: vertical;
+  text-shadow: 3px 3px 1px rgba(0,0,0,1.0);
+  font-family: 'Inconsolata', 'Source Code Pro','ＭＳ ゴシック';
+  background-color:rgba(0,0,0,0.75);
+
+}
+
+
+
+.footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  /* Set the fixed height of the footer here */
+  height: 60px;
+  background-color: #f0f0f0;
+}
+
+.container {
+  width: auto;
+  max-width: 1000px;
+  padding: 0 15px;
+}
+.container .text-muted {
+  margin: 5px 0;
+}

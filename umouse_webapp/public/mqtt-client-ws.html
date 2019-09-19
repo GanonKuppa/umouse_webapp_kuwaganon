@@ -1,0 +1,386 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Mqtt Client</title>
+
+  <!-- フォントの読み込み -->
+  <link href="https://fonts.googleapis.com/css?family=Inconsolata|Press+Start+2P|Source+Code+Pro" rel="stylesheet">
+  <!-- BootstrapのCSS読み込み -->
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <!-- jQuery読み込み -->
+  <script src="./js/jquery-latest.js"></script>
+  <!-- BootstrapのJS読み込み -->
+  <script src="./js/bootstrap.min.js"></script>
+  <!-- mqttをwsで使うためのライブラリの読み込み -->
+  <script src="./js/mqttws31.js" type="text/javascript"></script>
+  <!-- cssの読み込み -->
+  <link href="./css/all-page.css" rel="stylesheet">
+
+  <!--javascriptの記述 -->
+  <script type="text/javascript" src="./js/util.js"></script>
+  <script type="text/javascript">
+
+    var logno_console = 0;
+    var logno_bin_console = 0;
+    var logno_topic_list = 0;
+    var logno_server_status = 0;
+    var topic_list = [];
+    var default_brk_ip = "flandre.local";
+    var default_brk_port = 9090;
+
+    var client;
+
+    $(document).ready(function() {
+      $("#header").load("header.html");
+      $("#footer").load("footer.html");
+
+      createClientInstance(default_brk_ip, default_brk_port);
+
+    });
+
+    function createClientInstance(ip, port){
+      client = new Paho.MQTT.Client(ip, port, "clientId");
+      // set callback handlers
+      client.onConnectionLost = onConnectionLost;
+      client.onMessageArrived = onMessageArrived;
+      // connect the client
+      client.connect({
+        onSuccess: onConnect
+      });
+    }
+
+
+    function subscribe(topic){
+      client.subscribe(topic);
+      topic_list.push(topic);
+    }
+
+    function unsubscribe(topic){
+      client.unsubscribe(topic);
+      //配列をループし値を照合して要素を削除
+      for(i=0; i<topic_list.length; i++){
+          if(topic_list[i] == topic){
+              //spliceメソッドで要素を削除
+              topic_list.splice(i--, 1);
+          }
+      }
+    }
+
+
+    // called when the client connects
+    function onConnect() {
+      // Once a connection has been made, make a subscription and send a message.
+      console.log("onConnect");
+      subscribe("gamepad");
+      subscribe("TEST");
+      subscribe("presence");
+      subscribe("mouse");
+
+      message = new Paho.MQTT.Message("This is mqtt-client-ws.html");
+      message.destinationName = "presence";
+      client.send(message);
+      console.log(client);
+      addMessageServerStatus("接続");
+      var topics = "";
+      for (var i = 0; i < topic_list.length; i++) {
+        if (i == topic_list.length - 1) topics += topic_list[i];
+        else topics += topic_list[i] + ", ";
+      }
+      addMessageTopicList(topics);
+    }
+
+    // called when the client loses its connection
+    function onConnectionLost(responseObject) {
+      if (responseObject.errorCode !== 0) {
+        console.log("onConnectionLost:" + responseObject.errorMessage);
+        addMessageServerStatus("断接続");
+      }
+    }
+
+    function onMessageArrived(message) {
+      topic = '<span style="color:#ffff00;font-size:small; " >'+ message.destinationName +  " : " + '</span>';
+      //topic = "<FONT color='yellow'>" + message.destinationName +  " : " +"</FONT>";
+      addMessageConsole(topic + buffer_to_string(message._getPayloadBytes()));
+      addMessageConsoleBin(topic + bytes_to_hex_string(message._getPayloadBytes()));
+      //console.log(message.destinationName);
+      //console.log(message._getPayloadBytes());
+    }
+
+
+    //受信パケット表示の更新処理
+    function addMessageConsole(value) {
+      var msg = value;
+      // 現在のローカル時間が格納された、Date オブジェクトを作成する
+      var date_obj = new Date();
+      $("#msg_list").prepend("<div class='msg" + logno_console + "' style ='font-size:small;' > " + "[" + logno_console + "] " + msg + "</div>");
+
+      logno_console++;
+      vis_num = 3000
+      if (logno_console > vis_num - 1) {
+        $('#msg_list > .msg' + (logno_console - vis_num)).remove();
+      }
+
+    }
+
+    function addMessageConsoleBin(value) {
+      var msg = value;
+      // 現在のローカル時間が格納された、Date オブジェクトを作成する
+      var date_obj = new Date();
+      $("#msg_list_bin").prepend("<div class='msg" + logno_console + "' style ='font-size:small;' > " + "[" + logno_console + "] " + msg + "</div>");
+      logno_bin_console++;
+      vis_num = 3000
+      if (logno_console > vis_num - 1) {
+        $('#msg_list_bin > .msg' + (logno_console - vis_num)).remove();
+      }
+
+    }
+
+
+    //Topic_listの更新処理
+    function addMessageTopicList(value) {
+      var msg = value.replace(/[!@$%<>'"&|]/g, ''); //タグ記号とかいくつか削除
+
+      $("#topic_list").prepend("<div class='msg' style ='font-size:small;' > " + "[" + logno_topic_list + "] " + msg + "</div>");
+      logno_topic_list++;
+
+    }
+    //Serverの状態の更新処理
+    function addMessageServerStatus(value) {
+      // 現在のローカル時間が格納された、Date オブジェクトを作成する
+      var date_obj = new Date();
+      var msg = value.replace(/[!@$%<>'"&|]/g, ''); //タグ記号とかいくつか削除
+      $("#server_connection_status").prepend("<div class='msg' style ='font-size:small;' > " + "[" + logno_server_status + "] " + date_obj.toString() + " ----- " + msg + "</div>");
+      logno_server_status++;
+    }
+
+
+    /* ボタンを押したときに呼ばれる関数群  */
+
+    //出版するメッセージを送る
+    function publishMessage() {
+      var msg = $("#publish_msg").val(); //取得
+      var topic = $("#publish_topic").val();
+      message = new Paho.MQTT.Message(msg);
+      message.destinationName = topic;
+      client.send(message);
+
+    }
+
+    //topicを追加
+    function addTopic() {
+      var topic = $("#add_topic").val(); //取得
+      if(topic == "") return;
+
+      $("#add_topic").val(""); //空白にする
+      subscribe(topic);
+      var topics = "";
+      for (var i = 0; i < topic_list.length; i++) {
+        if (i == topic_list.length - 1) topics += topic_list[i];
+        else topics += topic_list[i] + ", ";
+      }
+      addMessageTopicList(topics);
+    }
+    //topicの購読を止める
+    function removeTopic() {
+      var topic = $("#remove_topic").val(); //取得
+      if(topic =="") return;
+      unsubscribe(topic);
+      $("#remove_topic").val(""); //空白にする
+
+      var topics = "";
+      for (var i = 0; i < topic_list.length; i++) {
+        if (i == topic_list.length - 1) topics += topic_list[i];
+        else topics += topic_list[i] + ", ";
+      }
+      addMessageTopicList(topics);
+    }
+
+    //ブローカーに接続
+    function connectBroker(){
+      var ip = $("#input_ip").val();
+      var port = $("#input_port").val();
+      console.log(ip);
+      console.log(port);
+      createClientInstance(ip, parseInt(port,10));
+    }
+
+
+  </script>
+
+</head>
+
+<body>
+  <!--ヘッダー部分-->
+  <div id="header"></div>
+
+  <div class="row">
+    <div class="col-md-10 col-md-offset-1">
+      <br>
+      <h1>
+        <span style="display:block;padding-left:0.5em;border-left:5px solid #339966;border-bottom:1px solid #339966;"><b>Connect Broker</b></span>
+      </h1>
+      ※ Mosquittoとwebsocketで通信します。MosquittoをWebsocketに対応させて下さい。
+      <br>
+      <br>
+    </div>
+
+    <div class="col-md-3 col-md-offset-1">
+      <br> IPアドレスを入力
+      <div>
+        <form action="" method="post" onsubmit="return false;">
+          <input type="text" class="text" style="font-size:small;  width:75%; padding:10px" id="input_ip" />
+        </form>
+      </div>
+      ポート番号を入力
+      <div>
+        <form action="" method="post" onsubmit="return false;">
+          <input type="text" class="text" style="font-size:small;  width:75%; padding:10px" id="input_port" />
+        </form>
+      </div>
+
+      <div>
+        <form action="" method="post" onsubmit="return false;">
+          <input type="submit" class="button" style="font-size:large;  padding:10px" onclick="connectBroker();" value="connect" />
+        </form>
+      </div>
+
+    </div>
+
+    <div class="col-md-5  col-md-offset-2">
+      <div class="panel panel-default">
+        <div class="panel-heading" style="font-size:large; background-color:rgba(150,0,0,0.5); color:#FFF;">
+          購読topic一覧
+        </div>
+
+        <div id="topic_list" style="height:100px;
+                                      overflow:auto;
+                                      background-color:rgba(255,255,255,0.85);
+                                      color:#000;  ">
+        </div>
+      </div>
+
+      <div class="panel panel-default">
+        <div class="panel-heading" style="font-size:large; background-color:rgba(0,90,0,0.5); color:#FFF;">
+          サーバーとの接続状態
+        </div>
+
+        <div id="server_connection_status" style="height:100px;
+                                      overflow:auto;
+                                      background-color:rgba(255,255,255,0.85);
+                                      color:#000;  ">
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-4 col-md-offset-1">
+        <!--見出し-->
+        <h1>
+          <span style="display:block;padding-left:0.5em;border-left:5px solid #339966;border-bottom:1px solid #339966;"><b>Mqtt Publisher</b></span>
+        </h1>
+
+
+        <br>
+        <!--出版するtopic入力用のテキストボックス -->
+        出版するtopicを入力
+        <div>
+          <form action="" method="post" onsubmit="return false;">
+            <input type="text" class="text" style="font-size:small;  width:75%; padding:10px" id="publish_topic" />
+          </form>
+        </div>
+        <!--出版するメッセージの入力用のテキストボックス -->
+        出版する内容を入力
+        <div>
+          <form action="" method="post" onsubmit="return false;">
+            <input type="text" class="text" style="font-size:small;  width:75%; padding:10px" id="publish_msg" />
+          </form>
+        </div>
+
+        <div>
+          <form action="" method="post" onsubmit="return false;">
+            <input type="submit" class="button" style="font-size:large;  padding:10px" onclick="publishMessage();" value="publish" />
+          </form>
+        </div>
+
+      </div>
+
+      <div class="row">
+        <div class="col-md-4 col-md-offset-1">
+          <!--見出し-->
+          <h1>
+          <span style="display:block;padding-left:0.5em;border-left:5px solid #339966;border-bottom:1px solid #339966;"><b>Mqtt Subscriber</b></span>
+        </h1>
+
+
+          <br>
+          <!--購読するtopic入力用のテキストボックス -->
+          購読するtopicを入力
+          <div>
+            <form action="" method="post" onsubmit="return false;">
+              <input type="text" class="text" style="font-size:small;  width:75%; padding:10px" id="add_topic" />
+              <input type="submit" class="button" style="font-size:small;  padding:10px" onclick="addTopic();" value="購読する" />
+            </form>
+          </div>
+          <!--購読を止めるtopic入力用のテキストボックス -->
+          購読を止めるtopicを入力
+          <div>
+            <form action="" method="post" onsubmit="return false;">
+              <input type="text" class="text" style="font-size:small;  width:75%; padding:10px" id="remove_topic" />
+              <input type="submit" class="button" style="font-size:small;  padding:10px" onclick="removeTopic();" value="購読中止" />
+            </form>
+          </div>
+
+        </div>
+
+
+
+    </div>
+  </div>
+
+  <div class="row" style="opacity: 0.85;">
+    <div class="col-md-10 col-md-offset-1">
+      <br>
+      <!-- コンソールっぽい黒い四角  -->
+      <div class="panel panel-default">
+        <div class="panel-heading" style="font-size:large; background-color:rgba(50,50,150,0.5); color:#FFF;">
+          パケットログ
+        </div>
+        <div class="panel-contents" id="msg_list" style="height:500px; overflow:scroll;">
+        </div>
+      </div>
+      [通し番号] トピック名 : ペイロード で表示しています
+      <!-- 余白  -->
+      <br>
+      <br>
+    </div>
+
+  </div>
+
+  <div class="row" style="opacity: 0.85;">
+    <div class="col-md-10 col-md-offset-1">
+      <br>
+      <!-- コンソールっぽい黒い四角  -->
+      <div class="panel panel-default">
+        <div class="panel-heading" style="font-size:large; background-color:rgba(50,150,150,0.5); color:#FFF;">
+          パケットログ(HEX)
+        </div>
+        <div class="panel-contents" id="msg_list_bin" style="height:500px; overflow:scroll;">
+        </div>
+      </div>
+      [通し番号] トピック名 : ペイロード(HEX) で表示しています
+      <!-- 余白  -->
+      <br>
+      <br>
+    </div>
+
+  </div>
+
+
+  <!--  フッター部分 -->
+  <div id="footer"></div>
+
+</body>
+
+</html>

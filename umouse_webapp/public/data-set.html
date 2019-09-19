@@ -1,0 +1,486 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>μMouse data-set </title>
+
+  <!-- フォントの読み込み -->
+  <link href="https://fonts.googleapis.com/css?family=Inconsolata|Press+Start+2P|Source+Code+Pro" rel="stylesheet">
+  <!-- BootstrapのCSS読み込み -->
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <!-- jQuery読み込み -->
+  <script src="./js/jquery-latest.js"></script>
+  <!-- BootstrapのJS読み込み -->
+  <script src="./js/bootstrap.min.js"></script>
+  <!-- socket.ioを使うためのライブラリの読み込み -->
+  <script type="text/javascript" src="/socket.io/socket.io.js"></script>
+
+
+  <!-- cssの読み込み -->
+  <link href="./css/all-page.css" rel="stylesheet">
+
+  <!--javascriptの記述 -->
+  <script type="text/javascript" src="./js/util.js"></script>
+  <script type="text/javascript">
+
+
+    //パラメータの読み込み
+    var server_ip = "";
+    var server_port = "";
+    var message_len = 0;
+
+    $.getJSON("../json/param.json", function (data) {
+      server_ip = data.SERVER_ID;
+      server_port = data.SERVER_PORT;
+      message_len = data.MESSAGE_LEN;
+    })
+
+    //サーバとのsocket_ioでの接続
+    var s = io.connect('http://' + server_ip + ':' + server_port, { transports: ['websocket'] });
+
+    var val_name_list = [
+    'mass',
+    'dia_tire',
+    'tread',
+    'inertia',
+    'K_T_left',
+    'K_T_right',
+    'circuit_res_left',
+    'circuit_res_right',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    'trans_friction_coef',
+    'trans_friction_offset',
+    'trans_v_P',
+    'trans_v_I',
+    'trans_v_D',
+    'trans_v_F',
+    'trans_v_spin_P',
+    'trans_v_spin_I',
+    'trans_v_spin_D',
+    'trans_v_spin_F',
+    'trans_v_slalom_P',
+    'trans_v_slalom_I',
+    'trans_v_slalom_D',
+    'trans_v_slalom_F',
+    '',
+    '',
+    '',
+    '',
+    'rot_friction_coef',
+    'rot_friction_offset',
+    'rot_v_P',
+    'rot_v_I',
+    'rot_v_D',
+    'rot_v_F',
+    'rot_v_spin_P',
+    'rot_v_spin_I',
+    'rot_v_spin_D',
+    'rot_v_spin_F',
+    'rot_v_slalom_P',
+    'rot_v_slalom_I',
+    'rot_v_slalom_D',
+    'rot_v_slalom_F',
+    'rot_x_P',
+    'rot_x_I',
+    'rot_x_D',
+    'rot_x_F',
+    'rot_x_spin_P',
+    'rot_x_spin_I',
+    'rot_x_spin_D',
+    'rot_x_spin_F',
+    'rot_x_slalom_P',
+    'rot_x_slalom_I',
+    'rot_x_slalom_D',
+    'rot_x_slalom_F',
+    'wall_P',
+    'wall_I',
+    'wall_D',
+    'wall_F',
+    'wall_diag_P',
+    'wall_diag_I',
+    'wall_diag_D',
+    'wall_diag_F',
+    'pos_P',
+    'pos_I',
+    'pos_D',
+    'pos_F',
+    '',
+    '',
+    '',
+    '',
+    'trans_v_PIDF_saturation_enable',
+    'rot_v_PIDF_saturation_enable',
+    '',
+    'trans_v_saturation_offset_duty',
+    'trans_v_saturation_FF_multiplier',
+    'rot_v_saturation_offset_duty',
+    'rot_v_saturation_FF_multiplier',
+    '',
+    '',
+    '',
+    'trans_v_PIDF_integral_saturation',
+    'rot_v_PIDF_integral_saturation',
+    'rot_x_PIDF_integral_saturation',
+    'pos_PIDF_integral_saturation',
+    'wall_PIDF_integral_saturation',
+    'target_rot_x_saturation',
+    'rot_x_wall_abs_center_offset',
+    '',
+    '',
+    '',
+    'trans_v_FF_enable',
+    'trans_v_PIDF_enable',
+    'rot_v_FF_enable',
+    'rot_v_PIDF_enable',
+    'rot_x_PIDF_enable',
+    'pos_PIDF_enable',
+    'wall_PIDF_enable',
+    'wall_diag_PIDF_enable',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    'wall_center_r',
+    'wall_center_l',
+    'collision_thr_ahead',
+    'wall_threshold_right',
+    'wall_threshold_left',
+    'wall_threshold_ahead_r',
+    'wall_threshold_ahead_l',
+    'wall_ctrl_threshold_right',
+    'wall_ctrl_threshold_left',
+    'wall_ctrl_threshold_delta_right',
+    'wall_ctrl_threshold_delta_left',
+    'wall_ctrl_add_val_right',
+    'wall_ctrl_add_val_left',
+    'diag_r_corner_read_offset',
+    'diag_l_corner_read_offset',
+    'wall_corner_threshold_on_r',
+    'wall_corner_threshold_off_r',
+    'wall_corner_threshold_on_l',
+    'wall_corner_threshold_off_l',
+    'wall_corner_read_offset_r',
+    'wall_corner_read_offset_l',
+    'wall_contact_threshold_right',
+    'wall_contact_threshold_left',
+    'wall_contact_threshold_ahead_r',
+    'wall_contact_collision_threshold_ahead_l',
+    'wall_contact_offset',
+    'wall_diagonal_ahead_l_threshold',
+    'wall_diagonal_ahead_r_threshold',
+    'wall_diagonal_avoid_add_ang',
+    '',
+    'gyro_x_ref',
+    'gyro_y_ref',
+    'gyro_z_ref',
+    'acc_x_ref',
+    'acc_y_ref',
+    'acc_z_ref',
+    'duty_limit',
+    'silent_flag',
+    'send_data_mode',
+    'test_run_v',
+    'test_run_a',
+    'test_run_x',
+    'test_run_wall_flag',
+    'v_search_run',
+    'a_search_run',
+    'goal_x',
+    'goal_y',
+    'search_limit_time_sec',
+    '',
+    '',
+    '',
+    '',
+    'spin_ang_v',
+    'spin_ang_a',
+    'gyro_scaler_right',
+    'gyro_scaler_left',
+    'v_comp_gain',
+    'gyro2_scaler_right',
+    'gyro2_scaler_left',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    'gyro2_x_ref',
+    'gyro2_y_ref',
+    'gyro2_z_ref',
+    'acc2_x_ref',
+    'acc2_y_ref',
+    'acc2_z_ref',
+    '',
+    '',
+    '',
+    '',
+    '',
+    ];
+
+    $(document).ready(function () {
+      $("#header").load("header.html");
+      $("#footer").load("footer.html");
+
+      //サーバとのsocket_ioでの接続
+      // 接続確立時
+      s.on("connect", function () {
+        s.emit("C2S:mqtt-sub/query_mqtt_topic", {
+          value: "query"
+        });
+        console.log("con");
+
+        topics = "TEST, presence, mouse, gamepad";
+      });
+      // 接続切断時
+      s.on("disconnect", function (client) {
+        console.log("dis_con");
+      });
+
+      //mqttのメッセージをサーバーが受信時
+      s.on("mqtt_message", function (data) {
+        //console.log(data);
+        topic = data.topic;
+        payload = data.payload;
+
+        if (topic == "mouse") {
+          var data_view = new DataView(payload);
+          var intList = [];
+          for (var i = 0; i < message_len; i = i + 1) {
+            intList.push(data_view.getUint8(i, true));
+          }
+          reflectData(intList);
+        }
+
+      });
+
+    });
+
+
+    function reflectData(intList) {
+      //console.log("reflectData");
+      var sum = 0;
+      for (var i = 7; i < message_len; i++) sum += intList[i];
+      sum = sum % 256;
+      if (sum != intList[6]) {
+        console.log("chksum err" + intList[6] + "  " + sum);
+        return;
+      }
+      var part_num = intList[250];
+      for (var i = 0; i < 10; i++) {
+        var var_num = part_num * 10 + i;
+        var type_index_num = 250 + 2 + i * 5;
+        var val_index_num = type_index_num + 1;
+        var buffer = new ArrayBuffer(4);
+        var int8View = new Int8Array(buffer);
+        var val = 0;
+        int8View[0] = intList[val_index_num];
+        int8View[1] = intList[val_index_num + 1];
+        int8View[2] = intList[val_index_num + 2];
+        int8View[3] = intList[val_index_num + 3];
+
+        type = intList[type_index_num];
+        switch (type) {
+          case 0:
+            var f32 = new Float32Array(buffer);
+            val = f32[0];
+            break;
+          case 1:
+            var ui8 = new Uint8Array(buffer);
+            val = ui8[0];
+            break;
+          case 2:
+            var ui16 = new Uint16Array(buffer);
+            val = ui16[0];
+            break;
+          case 3:
+            var ui16 = new Uint32Array(buffer);
+            val = ui32[0];
+            break;
+          case 4:
+            var i8 = new Int8Array(buffer);
+            val = i8[0];
+            break;
+          case 5:
+            var i16 = new Int16Array(buffer);
+            val = i16[0];
+            break;
+          case 6:
+            var i32 = new Int32Array(buffer);
+            val = i32[0];
+        }
+
+        console.log(var_num, type, val);
+        $("#read_value_tb" + var_num).val(val);
+
+        if (parseInt($("input[name='data_type" + var_num + "'" + "]:checked").val(), 10) != type) {
+          $("input[name='data_type" + var_num + "' ]").prop('checked', false);
+          $("input[name='data_type" + var_num + "' ][value='" + type.toString() + "']").prop('checked', true);
+        }
+
+      }
+
+
+    }
+    function send(group_num) {
+      console.log("=====send======");
+      console.log("group_num: " + group_num);
+      var type = parseInt($("input[name='data_type" + group_num + "'" + "]:checked").val(), 10);
+      var val_num = parseInt($("#data_num_tb" + group_num).val(), 10);
+      var val = parseFloat($("#write_value_tb" + group_num).val(), 10);
+      cmd_bytes = [99, 109, 100, 251,
+        0, type, 100, 0,
+        0, 0, val_num, 0,
+        0, 0, 0, 0];
+      console.log("val: " + val);
+      console.log("val_num: " + val_num);
+
+      switch (type) {
+        case 0:
+          var f32 = new Float32Array(1);
+          f32[0] = val;
+          var barr = new Uint8Array(f32.buffer);
+          break;
+        case 1:
+          var ui8 = new Uint8Array(1);
+          ui8[0] = val;
+          var barr = new Uint8Array(ui8.buffer);
+          break;
+        case 2:
+          var ui16 = new Uint16Array(1);
+          ui16[0] = val;
+          var barr = new Uint8Array(ui16.buffer);
+          break;
+        case 3:
+          var ui32 = new Uint32Array(1);
+          ui32[0] = val;
+          var barr = new Uint8Array(ui32.buffer);
+          break;
+        case 4:
+          var i8 = new Int8Array(1);
+          i8[0] = val;
+          var barr = new Uint8Array(i8.buffer);
+          break;
+        case 5:
+          var i16 = new Int16Array(1);
+          i16[0] = val;
+          var barr = new Uint8Array(i16.buffer);
+          break;
+        case 6:
+          var i32 = new Int32Array(1);
+          i32[0] = val;
+          var barr = new Uint8Array(i32.buffer);
+          break;
+      }
+
+      for (var i = 0; i < barr.length; i++) {
+        cmd_bytes[6 + i] = barr[i];
+      }
+
+
+      var chk_sum = 0;
+      for (var i = 5; i < 16; i++) {
+        chk_sum += cmd_bytes[i];
+      }
+
+      cmd_bytes[4] = chk_sum;
+      //alert(cmd_bytes);
+      console.log(barr);
+      console.log("cmd_bytes: " + cmd_bytes);
+
+      s.emit("cmd_message", {
+        payload: cmd_bytes
+      });
+
+    };
+
+
+    $(function () {
+      for (var i = 0; i < 200; i++) {
+        var div_element = document.createElement("div" + i);        
+        if(val_name_list[i] == ""){
+          div_element.innerHTML = " ";
+        }
+        else
+          div_element.innerHTML =          
+          '<p><b> 　変数名 </b>' +
+          '<input type="text" id="value_num' + i + '" value="' + val_name_list[i] + '" style="background-color:rgba(255,255,255,0.85); color:#339966; width:400px" >' +
+          '<b> 型名 </b>' +
+          '<input type="radio" name="data_type' + i + '" value="0" checked > float  ' +
+          '<input type="radio" name="data_type' + i + '" value="1" > uint8  ' +
+          '<input type="radio" name="data_type' + i + '" value="2" > uint16  ' +
+          '<input type="radio" name="data_type' + i + '" value="3" > uint32  ' +
+          '<input type="radio" name="data_type' + i + '" value="4" > int8  ' +
+          '<input type="radio" name="data_type' + i + '" value="5" > int16  ' +
+          '<input type="radio" name="data_type' + i + '" value="6" > int32  ' +
+          '</p>' +
+          '<b> 　データ番号 </b>' +
+          '  <input type="number" id="data_num_tb' + i + '" value="' + i + '" style="color:black; width:70px"  min="0" step="1" >' +
+          '<b> 読み取り値 </b>' +
+          '<input type="text" id="read_value_tb' + i + '" value="0" style="color:black; width:150px" >' +
+          '<b> 書き込み値 </b>' +
+          '<input type="text" id="write_value_tb' + i + '" value="0" style="color:black; width:150px" >' +
+          '<input type="button" value=" send " onclick="send(' + i + ')" style="color:black;" >' +
+          '<br>'; 
+          div_element.innerHTML += '<hr style="border:0;border-top:1px solid black;">';
+          if(i %10 == 9){  
+            div_element.innerHTML += " " +"<span style='font-size:180%;'>" +(i+1)+'</span>';
+          }
+          var parent_object = document.getElementById("cols");
+        parent_object.appendChild(div_element);
+
+      }
+
+    })
+
+
+
+  </script>
+
+
+
+</head>
+
+<body>
+    <div id="header"></div>
+  <!--見出し-->
+  <h1>
+      <span style="display:block;padding-left:0.5em;border-left:5px solid #339966;border-bottom:1px solid #339966;"
+       onclick="obj=document.getElementById('row_umbc').style; obj.display=(obj.display=='none')?'block':'none';
+                obj=document.getElementById('row_plog').style; obj.display=(obj.display=='none')?'block':'none';
+       ">
+        <a style="cursor:pointer;">μMouse Data-set</a>
+      </span>
+    </h1>
+    
+
+    <div id="cols"></div>
+  </div>
+</body>
+
+</html>

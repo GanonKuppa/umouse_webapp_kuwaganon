@@ -1,0 +1,518 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>μMouse Browser Console_ng </title>
+
+  <!-- フォントの読み込み -->
+  <link href="https://fonts.googleapis.com/css?family=Inconsolata|Press+Start+2P|Source+Code+Pro" rel="stylesheet">
+  <!-- jQuery読み込み -->
+  <script src="http://code.jquery.com/jquery-latest.js"></script>
+
+  <!-- BootstrapのCSS読み込み -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+  <link href="./css/sticky-footer.css" rel="stylesheet">
+  <!-- BootstrapのJS読み込み -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+  <!-- 各種JS読み込み -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- 文字列操作系関数読み込み-->
+  <script type="text/javascript" src="./js/util.js"></script>
+
+  <script type="text/javascript">
+    //各種div部品の読み込み
+    $(document).ready(function () {
+        $("#header").load("header.html");
+        $("#footer").load("footer.html");
+        $("#value_table_1").load("value_table_1.html");
+        $("#value_table_2").load("value_table_2.html");
+        $("#value_table_3").load("value_table_3.html");
+        $("#value_table_4").load("value_table_4.html");
+        $("#value_table_5").load("value_table_5.html");
+        $("#value_table_6").load("value_table_6.html");
+
+        //パラメータの読み込み
+        var server_ip = "";
+        var server_port = "";;
+        var message_len = 0;
+        $.getJSON("param.json", function(data) {
+          server_ip = data.SERVER_ID;
+          server_port = data.SERVER_PORT;
+          message_len = data.MESSAGE_LEN;
+        })
+
+
+        //printfコンソール用グローバル変数
+        var last_msg = "";
+        var logno_message = 0;
+        var scroll_flag = false;
+        //soket.ioの接続
+        var s = io.connect('http://' + server_ip + ':' + server_port); //サーバとの接続
+        var logno_console = 0;
+        var logno_topic_list = 0;
+        var logno_server_status = 0;
+        //サーバーから受け取るイベント
+        s.on("connect", function() {
+          s.emit("C2S:mqtt-sub/query_mqtt_topic", {
+            value: "query"
+          });
+          addMessageServerStatus("接続");
+        }); // 接続時
+        s.on("disconnect", function(client) {
+          addMessageServerStatus("断接続")
+        }); // 切断時
+
+        s.on("S2C:mqtt-sub/message", function(data) {
+
+          if(data.topic == "mouse"){
+            var data_view = new DataView(data.message);
+            var intList = [];
+            for (var i = 0; i < message_len; i = i + 1) {
+              intList.push(data_view.getUint8(i, true));
+            }
+            reflectData(intList);
+            addMessageConsole(bytes_to_hex_string(intList) + " : " + data.topic);
+          }
+          else{
+            addMessageConsole(buffer_to_string(data.message)+ " : " + data.topic);
+          }
+
+
+
+        });
+
+        s.on("S2C:mqtt-sub/topic_list", function(data) {
+          addMessageTopicList(data.value.toString());
+        });
+
+        //追加購読したいトピックを送る
+        function sendAddTopic() {
+          var msg = $("#add_topic").val(); //取得
+          $("#add_topic").val(""); //空白にする
+          s.emit("C2S:mqtt-sub/topic_add", {
+            value: msg
+          }); //サーバへ送信
+        }
+        //購読を止めたいトピックを送る
+        function sendRemoveTopic() {
+          var msg = $("#remove_topic").val(); //取得
+          $("#remove_topic").val(""); //空白にする
+          s.emit("C2S:mqtt-sub/topic_remove", {
+            value: msg
+          }); //サーバへ送信
+        }
+
+        //クライアントからサーバーへMQTTの購読topic一覧を問い合わせ
+        function sendQuery() {
+          s.emit("C2S:mqtt-sub/query_mqtt_topic", {
+            value: "query"
+          })
+        }
+
+        //16進文字列をbyte毎の数値配列に変換
+
+        function hexstr2intList(hexstr) {
+          var intList = [];
+          for (var i = 0; i < message_len * 2; i = i + 2) {
+            intList.push(parseInt(hexstr.slice(i, i + 2), 16));
+          }
+          return intList;
+        }
+
+        //受信パケット表示の更新処理
+        function addMessageConsole(value, color, size) {
+          var msg = value.replace(/[!@$%<>'"&|]/g, ''); //タグ記号とかいくつか削除
+          var timestamp = parseInt(msg.slice(16, 23 + 1), 16);
+          console.log("msg" + msg);
+          //console.log(intList.length)
+
+          // 現在のローカル時間が格納された、Date オブジェクトを作成する
+          var date_obj = new Date();
+          $("#msg_list").prepend("<div class='msg" + logno_console + "' style ='font-size:small;' > " + "[" + logno_console + "] " + msg + "</div>");
+          logno_console++;
+          vis_num = 100;
+          if (logno_console > vis_num - 1) {
+            $('#msg_list > .msg' + (logno_console - vis_num)).remove();
+          }
+
+        }
+
+        //Topic_listの更新処理
+        function addMessageTopicList(value, color, size) {
+          var msg = value.replace(/[!@$%<>'"&|]/g, ''); //タグ記号とかいくつか削除
+
+          $("#topic_list").prepend("<div class='msg' style ='font-size:small;' > " + "[" + logno_topic_list + "] " + msg + "</div>");
+          logno_topic_list++;
+
+        }
+        //Serverの状態の更新処理
+        function addMessageServerStatus(value, color, size) {
+          // 現在のローカル時間が格納された、Date オブジェクトを作成する
+          var date_obj = new Date();
+          var msg = value.replace(/[!@$%<>'"&|]/g, ''); //タグ記号とかいくつか削除
+          $("#server_connection_status").prepend("<div class='msg' style ='font-size:small;' > " + "[" + logno_server_status + "] " + date_obj.toString() + msg + "</div>");
+          logno_server_status++;
+        }
+
+        //受信したデータを画面に反映
+        function reflectData(intList) {
+          //console.log("reflectData");
+          var sum = 0;
+          for (var i = 7; i < message_len; i++) sum += intList[i];
+          sum = sum % 256;
+          if (sum != intList[6]) {
+            console.log("chksum err" + intList[6] + "  " + sum);
+            return;
+          }
+          //table_1部分の処理
+          var tbl1 = document.getElementById("table_1");
+          // 行に対するループ
+          var rows1 = tbl1.rows;
+          //ヘッダー部分とchksum,printfDataNum
+          for (var i = 0; i < 9; i++) {
+            rows1[i + 1].cells[1].innerText = intList[i].toString(16);
+            rows1[i + 1].cells[2].innerText = intList[i];
+            rows1[i + 1].cells[3].innerText = "-";
+            rows1[i + 1].cells[4].innerText = "-";
+          }
+          //タイムスタンプ
+          var timestamp = intList[11] + (intList[10] << 8) + (intList[9] << 16) + (intList[8] << 24);
+          rows1[9].cells[1].innerText = timestamp.toString(16);
+          rows1[9].cells[2].innerText = timestamp;
+
+          //table_2部分の処理
+          var tbl2 = document.getElementById("table_2");
+          rows2 = tbl2.rows;
+          rows_index = 1;
+          for (var i = 12; i <= 44; i = i + 2) {
+            uint_val = intList[i + 1] + (intList[i] << 8);
+            rows2[rows_index].cells[1].innerText = uint_val.toString(16);
+            rows2[rows_index].cells[2].innerText = uint_val;
+            if (uint_val > 32767) rows2[rows_index].cells[3].innerText = uint_val - 65536;
+            else rows2[rows_index].cells[3].innerText = uint_val;
+
+            rows_index++;
+          }
+          //table_3部分の処理
+          var tbl3 = document.getElementById("table_3");
+          rows3 = tbl3.rows;
+          rows_index = 1;
+          for (var i = 46; i <= 78; i = i + 2) {
+            uint_val = intList[i + 1] + (intList[i] << 8);
+            rows3[rows_index].cells[1].innerText = uint_val.toString(16);
+            rows3[rows_index].cells[2].innerText = uint_val;
+            if (uint_val > 32767) rows3[rows_index].cells[3].innerText = uint_val - 65536;
+            else rows3[rows_index].cells[3].innerText = uint_val;
+
+            rows_index++;
+          }
+          //table_4部分の処理
+          var tbl4 = document.getElementById("table_4");
+          rows4 = tbl4.rows;
+          rows_index = 1;
+          for (var i = 80; i <= 112; i = i + 2) {
+            uint_val = intList[i + 1] + (intList[i] << 8);
+            rows4[rows_index].cells[1].innerText = uint_val.toString(16);
+            rows4[rows_index].cells[2].innerText = uint_val;
+            if (uint_val > 32767) rows4[rows_index].cells[3].innerText = uint_val - 65536;
+            else rows4[rows_index].cells[3].innerText = uint_val;
+
+            rows_index++;
+          }
+          //table_5部分の処理
+          var tbl5 = document.getElementById("table_5");
+          rows5 = tbl5.rows;
+          rows_index = 1;
+          for (var i = 114; i <= 146; i = i + 2) {
+            uint_val = intList[i + 1] + (intList[i] << 8);
+            rows5[rows_index].cells[1].innerText = uint_val.toString(16);
+            rows5[rows_index].cells[2].innerText = uint_val;
+            if (uint_val > 32767) rows5[rows_index].cells[3].innerText = uint_val - 65536;
+            else rows5[rows_index].cells[3].innerText = uint_val;
+
+            rows_index++;
+          }
+          //table_6部分の処理
+          var tbl6 = document.getElementById("table_6");
+          rows6 = tbl6.rows;
+          rows_index = 1;
+          for (var i = 148; i <= 158; i = i + 2) {
+            uint_val = intList[i + 1] + (intList[i] << 8);
+            rows6[rows_index].cells[1].innerText = uint_val.toString(16);
+            rows6[rows_index].cells[2].innerText = uint_val;
+            if (uint_val > 32767) rows6[rows_index].cells[3].innerText = uint_val - 65536;
+            else rows6[rows_index].cells[3].innerText = uint_val;
+
+            rows_index++;
+          }
+
+
+
+
+          //printf部分の処理
+          if (intList[7] != 0) {
+            msg = "";
+            vis_num = 500;
+
+            function writeLine() {
+
+              $("#printf_list").append("<div class='msg'  >" + "</div>");
+              logno_message++;
+              var findLines = document.getElementById('printf_list');
+              var lines = findLines.children;
+              if (logno_message > vis_num - 1) lines[0].remove();
+            }
+
+            for (var i = 0; i < intList[7]; i++) {
+
+              if (intList[message_len - 20 + i] == 10) {
+                //console.log("LF");
+                //console.log(utf8_hex_string_to_string(msg));
+                //console.log(msg);
+                var findLines = document.getElementById('printf_list');
+                var lines = findLines.children;
+                console.log(lines.length);
+                if (lines.length == 0) {
+                  writeLine();
+                } else {
+                  lines[lines.length - 1].innerText = lines[lines.length - 1].innerText + utf8_hex_string_to_string(msg);
+                  writeLine();
+                  if (scroll_flag == true) $("#printf_list").scrollTop($("#printf_list")[0].scrollHeight);
+                }
+                msg = "";
+                last_msg = "";
+              } else {
+                msg += intList[message_len - 20 + i].toString(16);
+                last_msg += intList[message_len - 20 + i].toString(16);
+              }
+            }
+
+            var findLines = document.getElementById('printf_list');
+            var lines = findLines.children;
+            console.log(lines.length);
+            if (lines.length == 0) {
+              writeLine();
+            } else {
+              lines[lines.length - 1].innerText = lines[lines.length - 1].innerText + utf8_hex_string_to_string(msg);
+            }
+          }
+
+          //電圧
+          voltage = 15.1 / 5.1 * ((intList[12] << 8) + intList[13]) * 3.3 / 4096;
+          document.getElementById('voltage_value').innerText = (voltage).toFixed(4);
+          document.getElementById('time_value').innerText = (timestamp / 1000.0).toFixed(2);
+        }
+
+        //printf表示コンソールのスクロールフラグ処理
+        function scroll_but_click() {
+          console.log("button")
+          if (scroll_flag == true) scroll_flag = false;
+          else scroll_flag = true;
+        }
+
+    });
+
+
+
+  </script>
+
+  <style>
+    * {
+      font-size: 30px;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-image: url(haikeitt.png);
+      background-repeat: no-repeat;
+      background-size: cover;
+    }
+  </style>
+
+
+</head>
+
+<body>
+  <!--ヘッダー部分-->
+  <div id="header"></div>
+
+
+  <div class="row">
+    <div class="col-md-10 col-md-offset-1">
+      <!--余白-->
+      <br>
+      <!--見出し-->
+      <h1>
+        <span style="display:block;padding-left:0.5em;border-left:5px solid #339966;border-bottom:1px solid #339966;"
+         onclick="obj=document.getElementById('row_umbc').style; obj.display=(obj.display=='none')?'block':'none';
+                  obj=document.getElementById('row_plog').style; obj.display=(obj.display=='none')?'block':'none';
+         ">
+          <a style="cursor:pointer;">μMouse Browser Console</a>
+        </span>
+      </h1>
+    </div>
+  </div>
+
+  <div class="row" id="row_umbc">
+    <div class="col-md-5 col-md-offset-1">
+      <!-- コンソールっぽい四角 購読トピック一覧   -->
+      <div class="panel panel-default">
+        <div class="panel-heading" style="font-size:large; background-color:rgba(150,0,0,0.5); color:#FFF;">
+          <b>購読topic一覧</b>
+        </div>
+
+        <div id="topic_list" style="height:80px;
+                                    overflow:auto;
+                                    background-color:rgba(255,255,255,0.85);
+                                    resize: vertical;
+                                    color:#000;  ">
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-5">
+      <!-- コンソールっぽい四角 サーバーとの接続状況   -->
+      <div class="panel panel-default">
+        <div class="panel-heading" style="font-size:large; background-color:rgba(0,90,0,0.5); color:#FFF;">
+          <b>サーバーとの接続状態</b>
+        </div>
+
+        <div id="server_connection_status" style="height:80px;
+                                      overflow:auto;
+                                      background-color:rgba(255,255,255,0.85);
+                                      resize: vertical;
+                                      color:#000;  ">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" id="row_plog" style="opacity: 0.85;">
+    <div class="col-md-10 col-md-offset-1">
+      <!-- コンソールっぽい黒い四角 パケットログ  -->
+      <div class="panel panel-default">
+        <div class="panel-heading" style="font-size:large; background-color:rgba(50,50,150,0.5); color:#FFF;">
+          <b>パケットログ ---------- [通し番号] ペイロード : トピック名 で表示しています</b>
+        </div>
+
+        <div id="msg_list" style="height:130px;
+                                      overflow:auto;
+                                      background-color:rgba(0,0,0,0.75);
+                                      color:#FFF;
+                                      resize: vertical;
+                                      text-shadow: 3px 3px 1px rgba(0,0,0,1.0);
+                                      font-family: 'Inconsolata', 'Source Code Pro','ＭＳ ゴシック';
+
+                                      ">
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="row">
+    <div class="col-md-10 col-md-offset-1">
+      <!--見出し-->
+      <h1>
+        <span style="display:block;padding-left:0.5em;border-left:5px solid #339966;border-bottom:1px solid #339966;"
+          onclick="obj=document.getElementById('row_values').style; obj.display=(obj.display=='none')?'block':'none';
+        ">
+          <a style="cursor:pointer;">Values</a>
+        </span>
+      </h1>
+    </div>
+  </div>
+
+  <div class "row" id="row_values">
+    <div class="col-md-10 col-md-offset-1">
+      <font style="font-size:40pt;" color="#0066ff">Battery Voltage: </font>
+      <font style="font-size:40pt;" color="#0066ff" id="voltage_value" 　　>value</font>
+      <font style="font-size:40pt;" color="#0066ff"> [V] </font>
+      <font style="font-size:40pt;" color="#0066ff">Time: </font>
+      <font style="font-size:40pt;" color="#0066ff" id="time_value">value</font>
+      <font style="font-size:40pt;" color="#0066ff"> [sec] </font>
+
+    </div>
+  </div>
+
+
+  <div class="row">
+    <div class="col-md-10 col-md-offset-1">
+      <!--見出し-->
+      <h1>
+        <span style="display:block;padding-left:0.5em;border-left:5px solid #339966;border-bottom:1px solid #339966;"
+          onclick="obj=document.getElementById('row_tables_1').style;
+                   obj.display=(obj.display=='none')?'block':'none';
+                   obj=document.getElementById('row_tables_2').style;
+                   obj.display=(obj.display=='none')?'block':'none';
+        ">
+          <a style="cursor:pointer;">Current receive data</a>
+        </span>
+      </h1>
+    </div>
+  </div>
+
+  <div class="row" id="row_tables_1">
+
+    <div class="col-md-3 col-md-offset-1" id="value_table_1" > </div>
+    <div class="col-md-3" id="value_table_2"> </div>
+    <div class="col-md-3" id="value_table_3"> </div>
+
+  </div>
+  <br>
+  <br>
+  <div class="row" id="row_tables_2">
+
+    <div class="col-md-3 col-md-offset-1" id="value_table_4" > </div>
+    <div class="col-md-3" id="value_table_5"> </div>
+    <div class="col-md-3" id="value_table_6"> </div>
+
+  </div>
+
+
+
+  <div class="row">
+    <div class="col-md-10 col-md-offset-1">
+      <!--見出し-->
+      <h1>
+        <span style="display:block;padding-left:0.5em;border-left:5px solid #339966;border-bottom:1px solid #339966;"
+          onclick="obj=document.getElementById('row_printf').style; obj.display=(obj.display=='none')?'block':'none';
+        ">
+          <a style="cursor:pointer;">Printf Output Log</a>
+        </span>
+      </h1>
+    </div>
+  </div>
+
+  <div class="row" id="row_printf" style="opacity: 0.85; display:none;">
+    <div class="col-md-10 col-md-offset-1">
+      <!-- コンソールっぽい黒い四角 printf出力 -->
+      <div class="panel panel-default">
+        <div class="panel-heading" style="font-size:large; background-color:rgba(50,50,150,0.5); color:#fff; ">
+          <b>printf出力ログ ---------- マウスからの文字出力　</b>
+          <button id="scroll_but" type="button" style="color:#000;" onclick="scroll_but_click()">
+            　自動スクロールON / OFF　
+          </button>
+        </div>
+
+        <div id="printf_list" style="height:750px;
+                                      overflow:auto;
+                                      background-color:rgba(0,0,0,0.75);
+                                      color:#FFF;
+                                      resize: vertical;
+                                      text-shadow: 3px 3px 1px rgba(0,0,0,1.0);
+                                      font-family: 'Inconsolata', 'Source Code Pro','ＭＳ ゴシック';
+                                      ">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!--  フッター部分 -->
+  <div id="footer"></div>
+
+</body>
+
+</html>

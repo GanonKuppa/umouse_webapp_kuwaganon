@@ -1,0 +1,918 @@
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Maze vision</title>
+  <style>
+    canvas {
+      width: 100%;
+      height: 100%
+    }
+  </style>
+
+
+  <!-- jQuery読み込み -->
+  <script src="./js/jquery-latest.js"></script>
+  <script type="text/javascript" src="./js/jquery.cookie.js"></script>
+  
+  <!-- THREE.js関連読み込み -->
+  <script src="./js/three.min.js"></script>
+  <script src="./js/OrbitControls.js"></script>
+  <script src="./js/Stats.js"></script>
+  <script src="./js/STLLoader.js"></script>
+
+  <!-- socket.io関連読み込み -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- 文字列操作系関数読み込み-->
+  <script type="text/javascript" src="./js/util.js"></script>
+
+  <script type="text/javascript" src="./js/umouseMessageParser.js"></script>
+</head>
+
+<body>
+  <script>
+    //パラメータの読み込み
+    let server_ip = "";
+    let server_port = "";
+    let message_len = 0;
+    let msg = "";
+    $.getJSON("../json/param.json", function (data) {
+      server_ip = data.SERVER_ID;
+      server_port = data.SERVER_PORT;
+      message_len = data.MESSAGE_LEN;
+    })
+
+    //soket.ioの接続
+    let s = io.connect('http://' + server_ip + ':' + server_port, { transports: ['websocket'] });
+
+    s.on("mqtt_message", function (data) {
+      //console.log(data);
+      if (data.topic != "mouse") return;
+      payload = data.payload;
+      let data_view = new DataView(payload);
+      let intList = [];
+      for (let i = 0; i < message_len; i = i + 1) {
+        intList.push(data_view.getUint8(i, true));
+      }
+      reflectData(intList);
+
+    });
+
+    s.on("udp_message", function(data) {
+      //console.log(data);
+      var parse_data = JSON.parse(data);
+      if(parse_data["type"] === "robot_pos"){
+        console.log(parse_data["type"],parse_data["x"],parse_data["y"], parse_data["ang"]);
+        setRobotPos(parse_data["x"], parse_data["y"], parse_data["ang"], parse_data["v"]/10.0, 0);
+
+      }
+      else if(parse_data["type"] === "target_pos"){
+        //console.log(parse_data["type"],parse_data["x"],parse_data["y"], parse_data["ang"]);
+        setTargetPos(parse_data["x"], parse_data["y"], parse_data["ang"], 0.1, 0);
+      }
+      else if(parse_data["type"] === "needle"){
+        setNeedle(parse_data["x"], parse_data["y"]);
+      }
+
+      else if(parse_data["type"] === "maze_wall"){
+        walls_vertical_list = hexstr2intList(parse_data["walls_vertical"],124*2);
+        walls_horizontal_list = hexstr2intList(parse_data["walls_horizontal"],124*2);
+
+        //console.log(walls_vertical_list);
+        //console.log(walls_horizontal_list);
+
+        for (let i = 0; i < 31; i++) {
+          byte0 = walls_vertical_list[i * 4 + 0];
+          byte1 = walls_vertical_list[i * 4 + 1];
+          byte2 = walls_vertical_list[i * 4 + 2];
+          byte3 = walls_vertical_list[i * 4 + 3];
+          bitList = byte4to32bit(byte0, byte1, byte2, byte3);
+          for (let j = 0; j < 32; j++) {
+            walls_vertical[i+1][j].visible = (bitList[j] == 1 ? true : false);
+          }
+        }
+
+        
+        for (let i = 0; i < 31; i++) {
+          byte0 = walls_horizontal_list[i * 4 + 0];
+          byte1 = walls_horizontal_list[i * 4 + 1];
+          byte2 = walls_horizontal_list[i * 4 + 2];
+          byte3 = walls_horizontal_list[i * 4 + 3];
+          bitList = byte4to32bit(byte0, byte1, byte2, byte3);
+          for (let j = 0; j < 32; j++) {
+            walls_horizontal[i+1][j].visible = (bitList[j] == 1 ? true : false);
+          }
+        }
+
+
+      }
+    });
+
+
+    //受信したデータを画面に反映
+    function reflectData(intList) {
+
+      let sum = 0;
+      for (let i = 7; i < message_len; i++) sum += intList[i];
+      sum = sum % 256;
+      if (sum != intList[6]) {
+        console.log("chksum err" + intList[6] + "  " + sum);
+        return;
+      }
+      //console.log(intList[160]);
+      //addMessageConsole(String(intList[160]) + ":" + bytes_to_hex_string(intList.slice(160, 160 + 70)));
+
+
+      //printf部分の処理
+      if (intList[7] != 0) {     
+        for (var i = 0; i < intList[7]; i++) {
+          if (intList[message_len - 60 + i] == 10) {  //10はLFの文字コードです。         
+            let msg_str = utf8_hex_string_to_string(msg); 
+            console.log(msg_str);
+            if(msg_str.split(":")[0].indexOf("msg_flag") !== -1){
+              let split_comma = msg_str.split(":")[1].split(",");
+              let x_flag = parseFloat(split_comma[0]);
+              let y_flag = parseFloat(split_comma[1]);
+              let str_flag = split_comma[2];
+              addMsgFlag(str_flag, x_flag, y_flag);
+            };
+
+            msg = "";
+          } else {
+            msg += intList[message_len - 60 + i].toString(16);
+          }
+        }
+      }
+
+
+
+      if (intList[160] == 0) {
+        for (let i = 0; i < 16; i++) {
+          byte0 = intList[161 + i * 4 + 0];
+          byte1 = intList[161 + i * 4 + 1];
+          byte2 = intList[161 + i * 4 + 2];
+          byte3 = intList[161 + i * 4 + 3];
+          bitList = byte4to32bit(byte0, byte1, byte2, byte3);
+          for (let j = 0; j < 32; j++) {
+            walls_vertical[i + 1][j].visible = (bitList[j] == 1 ? true : false);
+          }
+        }
+      }
+
+      if (intList[160] == 1) {
+        for (let i = 0; i < 15; i++) {
+          byte0 = intList[161 + i * 4 + 0];
+          byte1 = intList[161 + i * 4 + 1];
+          byte2 = intList[161 + i * 4 + 2];
+          byte3 = intList[161 + i * 4 + 3];
+          bitList = byte4to32bit(byte0, byte1, byte2, byte3);
+          for (let j = 0; j < 32; j++) {
+            walls_vertical[i + 17][j].visible = bitList[j] == 1 ? true : false;
+          }
+        }
+      }
+
+      if (intList[160] == 2) {
+        for (let i = 0; i < 16; i++) {
+          byte0 = intList[161 + i * 4 + 0];
+          byte1 = intList[161 + i * 4 + 1];
+          byte2 = intList[161 + i * 4 + 2];
+          byte3 = intList[161 + i * 4 + 3];
+          bitList = byte4to32bit(byte0, byte1, byte2, byte3);
+          for (let j = 0; j < 32; j++) {
+            walls_horizontal[i + 1][j].visible = bitList[j] == 1 ? true : false;
+          }
+        }
+      }
+
+      if (intList[160] == 3) {
+        for (let i = 0; i < 15; i++) {
+          byte0 = intList[161 + i * 4 + 0];
+          byte1 = intList[161 + i * 4 + 1];
+          byte2 = intList[161 + i * 4 + 2];
+          byte3 = intList[161 + i * 4 + 3];
+          bitList = byte4to32bit(byte0, byte1, byte2, byte3);
+          for (let j = 0; j < 32; j++) {
+            walls_horizontal[i + 17][j].visible = bitList[j] == 1 ? true : false;
+          }
+        }
+      }
+
+      let mouse_x = parseMouseX(intList);
+      let mouse_y = parseMouseY(intList);
+      let mouse_ang = parseMouseAng(intList);
+      let mouse_v = parseMouseV(intList);
+
+
+      let target_x = parseTargetX(intList);
+      let target_y = parseTargetY(intList);
+      let target_ang = parseTargetAng(intList);
+      let target_v = parseTargetV(intList);
+
+      let voltage = parseVoltage(intList);
+      let time = parseTime(intList);
+      let V_l = parseVoltageL(intList);
+      let V_r = parseVoltageR(intList);
+
+      let lf = parseWallLF(intList);
+      let l = parseWallL(intList);
+      let r = parseWallR(intList);
+      let rf = parseWallRF(intList);
+
+      let led_r = parseLed_R(intList);
+      let led_g = parseLed_G(intList);
+      let led_b = parseLed_B(intList);
+
+      setRobotPos(mouse_x, mouse_y, mouse_ang, mouse_v/10.0, intList[160]);
+      setTargetPos(target_x, target_y, target_ang, target_v/10.0, intList[160]);
+      updateDataView(time, voltage, V_l, V_r, mouse_x, mouse_y, mouse_ang, mouse_v);
+      updateWallSensorView(lf, l, r, rf);
+      if(led_r == 0 && led_g == 0 && led_b == 0) setRobotColor(0XAA0000 * 1 + 0XAA00 * 1 + 1 * 0xAA );
+      else if(led_r == 1 && led_g == 1 && led_b == 1) setRobotColor(0xFFFFFF);
+      else setRobotColor(0XAA0000 * led_r + 0XAA00 * led_g + led_b * 0xAA + 0X333333);
+    }
+
+    //初期化及び、変数宣言
+    var cameraReady = false;
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    var renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      precision: 'highp'
+    });
+    var controls = new THREE.OrbitControls(camera);
+    initRender();
+    initLight(scene);
+    initCamera();
+    //var fpsStats = initFpsStats();
+    //var memoryStats = initMemoryStats();
+    var clock = new THREE.Clock();
+
+    //3Dオブジェクトたち
+    var ground = initGround(scene); //地面
+    var table = initTable(scene); //迷路の台
+    var pillars = initPillar(scene); //柱
+    initWhiteLine(scene); //白線
+    var robot;
+    initRobot(scene);
+    var robot_helper = new THREE.AxesHelper(0.1);
+    scene.add(robot_helper);
+
+
+
+    var walls_vertical = initWall_vertical(scene); //縦壁
+    var walls_horizontal = initWall_horizontal(scene); //横壁
+    scene.add(new THREE.AxesHelper(10)); //xyz軸
+    
+    var ws_list = initWallSensor(scene);
+    
+    initLetterCoor_x(scene);
+    initLetterCoor_y(scene);
+
+    //walls_vertical[0][0].children[0].material.opacity = 0.1;
+    //walls_vertical[0][0].children[1].material.opacity = 0.1;
+
+    //描画ループ
+    var render = function () {
+      requestAnimationFrame(render);
+      controls.update();
+      renderer.render(scene, camera);
+      //fpsStats.update();
+      //memoryStats.update();
+      //現在のカメラの位置、角度、ターゲットをlocalStorageに保存
+      //console.log(crn)
+      if (cameraReady == true) {
+        window.localStorage['camera_position'] = JSON.stringify(controls.object.position);
+        window.localStorage['camera_rotation'] = JSON.stringify(controls.object.rotation);
+        window.localStorage['camera_target'] = JSON.stringify(controls.target);
+      }
+    };
+    render();
+
+
+    /*-----------------------------------------------------*/
+
+
+    //renderの初期化
+    function initRender() {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.setClearColor(0xcccccc, 1.0);
+      document.body.appendChild(renderer.domElement);
+    }
+    //cameraの初期化
+    function initCamera() {
+      if (window.localStorage['camera_position'] != null &&
+        window.localStorage['camera_rotation'] != null &&
+        window.localStorage['camera_target'] != null) {
+        camera.position.x = JSON.parse(window.localStorage['camera_position']).x;
+        camera.position.y = JSON.parse(window.localStorage['camera_position']).y;
+        camera.position.z = JSON.parse(window.localStorage['camera_position']).z;
+        camera.rotation._x = JSON.parse(window.localStorage['camera_rotation'])._x;
+        camera.rotation._y = JSON.parse(window.localStorage['camera_rotation'])._y;
+        camera.rotation._z = JSON.parse(window.localStorage['camera_rotation'])._z;
+        controls.target.x = JSON.parse(window.localStorage['camera_target']).x;
+        controls.target.y = JSON.parse(window.localStorage['camera_target']).y;
+        controls.target.z = JSON.parse(window.localStorage['camera_target']).z;
+        cameraReady = true;
+        console.log("no null", cameraReady);
+      } else {
+        camera.position.z = 5;
+        console.log("null");
+        cameraReady = true;
+      }
+    }
+
+    //FPS表示用のStatsの初期化
+    function initFpsStats() {
+      let stats = new Stats();
+      stats.domElement.style.position = 'absolute';
+      stats.domElement.style.top = '0px';
+      stats.domElement.style.zIndex = 100;
+      document.body.appendChild(stats.domElement);
+      return stats;
+    }
+
+    //メモリ使用量表示用のStatsの初期化
+    function initMemoryStats() {
+      let stats = new Stats();
+      stats.showPanel(2);
+      stats.domElement.style.position = 'absolute';
+      stats.domElement.style.top = '50px';
+      stats.domElement.style.zIndex = 100;
+      document.body.appendChild(stats.domElement);
+      return stats;
+    }
+
+    //ライトの初期化
+    function initLight(scene_) {
+      //環境光オブジェクト(light2)の設定　
+      let light0 = new THREE.AmbientLight(0x333333);
+      //sceneに環境光オブジェクト(light2)を追加
+      scene_.add(light0);
+
+      let light1 = new THREE.SpotLight(0xffffff, 0.2, 0); // 光源の色, 強さ
+      light1.position.set(-1 * (-8), 8, -8) // 光源の位置
+      light1.castShadow = true;
+      scene_.add(light1);
+
+      let light2 = new THREE.SpotLight(0xffffff, 0.2, 0); // 光源の色, 強さ
+      light2.position.set(-1 * 8, 8, 8) // 光源の位置
+      light2.castShadow = true;
+      scene_.add(light2);
+
+      let light3 = new THREE.SpotLight(0xffffff, 0.2, 0); // 光源の色, 強さ
+      light3.position.set(-1 * 8, 8, -8) // 光源の位置
+      light3.castShadow = true;
+      scene_.add(light3);
+
+      let light4 = new THREE.SpotLight(0xffffff, 0.2, 0); // 光源の色, 強さ
+      light4.position.set(-1 * (-8), 8, 8) // 光源の位置
+      light4.castShadow = true;
+      scene_.add(light4);
+    }
+
+    //地面の初期化
+    function initGround(scene_) {
+      let geometry = new THREE.PlaneGeometry(0.18 * 500, 0.18 * 500, 100, 100);
+      ground = new THREE.Mesh(
+        geometry,
+        new THREE.MeshPhongMaterial({
+          color: 0xaaccaa
+        }),
+        wireframe = true
+      );
+      ground.rotation.x = Math.PI / -2;
+      ground.position.set(0, -0.25, 0)
+      scene_.add(ground);
+      return ground;
+    }
+
+    //迷路のテーブルの初期化
+    function initTable(scene_) {
+      let table = new THREE.Mesh(
+        new THREE.CubeGeometry(0.18 * 18, 0.25, 0.18 * 18),
+        new THREE.MeshPhongMaterial({
+          color: 0x333333
+        })
+      );
+      table.position.set(0.18 * 8.0, -0.25 / 2, 0.18 * 8.0);
+      scene_.add(table);
+      return table;
+    }
+
+    //柱の初期化
+    function initPillar(scene_) {
+      let geometrys_white = new THREE.Geometry();
+      let geometrys_red = new THREE.Geometry();
+      //let pillars = new Array(33);
+      for (let j = 0; j < 33; j++) {
+        //pillars[j] = new Array(33);
+        for (let i = 0; i < 33; i++) {
+
+          //let cubes = new THREE.Group();
+          let cube1 = new THREE.Mesh(new THREE.CubeGeometry(0.006, 0.025, 0.006));
+          cube1.position.set(j * 0.09, 0.025 * 0.5, i * 0.09);
+
+          let cube2 = new THREE.Mesh(new THREE.CubeGeometry(0.006, 0.0005, 0.006));
+          cube2.position.set(j * 0.09, 0.025, i * 0.09);
+
+          geometrys_white.mergeMesh(cube1);
+          geometrys_red.mergeMesh(cube2);
+        }
+
+      }
+      let material_white = new THREE.MeshLambertMaterial({
+        color: 0xeeeeee
+      });
+      let mesh_white = new THREE.Mesh(geometrys_white, material_white);
+      scene_.add(mesh_white);
+
+
+      let material_red = new THREE.MeshLambertMaterial({
+        color: 0xaa3333
+      });
+      let mesh_red = new THREE.Mesh(geometrys_red, material_red);
+      scene_.add(mesh_red);
+    }
+
+    //横壁の初期化
+    function initWall_horizontal(scene_) {
+      let walls = new Array(33);
+      for (let i = 0; i < 33; i++) {
+        walls[i] = new Array(32);
+      }
+
+      for (let j = 0; j < 32; j++) {
+        for (let i = 0; i < 33; i++) {
+          let cubes = new THREE.Group();
+          let geometry = new THREE.CubeGeometry(0.012 / 2, 0.05 / 2, 0.168 / 2);
+          let material = new THREE.MeshPhongMaterial({
+            color: 0xffffff,
+            shininess: 120,
+            specular: 0x666666,
+            transparent: true
+          });
+          let cube1 = new THREE.Mesh(geometry, material);
+          cube1.position.set(i * 0.18 / 2, 0.025 / 2, 0.09 / 2 + j * 0.18 / 2);
+
+          geometry = new THREE.CubeGeometry(0.012 / 2, 0.001 / 2, 0.168 / 2);
+          material = new THREE.MeshPhongMaterial({
+            color: 0xff0000,
+            shininess: 120,
+            specular: 0x666666,
+            transparent: true
+          });
+          let cube2 = new THREE.Mesh(geometry, material);
+          cube2.position.set(i * 0.18 / 2, 0.051 / 2, 0.09 / 2 + j * 0.18 / 2);
+          cubes.add(cube1);
+          cubes.add(cube2);
+          scene_.add(cubes);
+          walls[i][j] = cubes;
+
+
+        }
+      }
+      return walls;
+    }
+    //縦壁の初期化
+    function initWall_vertical(scene_) {
+      let walls = new Array(33);
+      for (let i = 0; i < 33; i++) {
+        walls[i] = new Array(32);
+      }
+
+      let cubes;
+      let geometry;
+      let material;
+      for (let j = 0; j < 33; j++) {
+        for (let i = 0; i < 32; i++) {
+          cubes = new THREE.Group();
+          geometry = new THREE.CubeGeometry(0.168 / 2, 0.05 / 2, 0.012 / 2);
+          material = new THREE.MeshPhongMaterial({
+            color: 0xffffff,
+            specular: 0x666666,
+            transparent: true
+          });
+          let cube1 = new THREE.Mesh(geometry, material);
+          cube1.position.set((0.045 + i * 0.09), 0.025 / 2, j * 0.09);
+
+          geometry = new THREE.CubeGeometry(0.168 / 2, 0.001, 0.012 / 2);
+          material = new THREE.MeshPhongMaterial({
+            color: 0xff0000,
+            specular: 0x666666,
+            transparent: true
+          });
+          let cube2 = new THREE.Mesh(geometry, material);
+          cube2.position.set((0.045 + i * 0.09), 0.05 / 2, j * 0.09);
+          cubes.add(cube1);
+          cubes.add(cube2);
+          scene_.add(cubes);
+          walls[j][i] = cubes;
+        }
+      }
+      return walls;
+    }
+
+    function initRobot(scene_) {
+
+      
+      //ここにstlファイルを記述
+      let model_load = "./black_stag.stl";
+      let loader = new THREE.STLLoader();
+      loader.load(model_load);
+
+      loader.addEventListener('load', function (event) {
+        let geometry = event.content;
+        let material = new THREE.MeshLambertMaterial({ color: 0xffffff });
+        let mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(0.09 / 2, 0.0, 0.09 / 2);
+        mesh.rotation.set(0, Math.PI / 2, 0);
+        scene_.add(mesh);
+        robot = mesh;
+        robot_helper.rotation.set(0, 0, 0);
+        robot_helper.position.set(0.09/2, 0.0, 0.09/2);
+      });
+
+    }
+
+    function setRobotColor(color){
+      robot.material.color = new THREE.Color(color);
+    }
+
+    var robot_x_pre = 0.0;
+    var robot_y_pre = 0.0;
+    function setRobotPos(x, y, ang, v, count) {
+      if (robot != null) {
+        ang_rad = Math.PI * ang / 180.0;
+        robot.position.set(y, 0.0, x);
+        robot.rotation.set(0, ang_rad, 0);
+        robot_helper.position.set(y, 0.0, x);
+        robot_helper.rotation.set(0, ang_rad , 0);
+        if (v > 0.01) 
+        {  
+          let material_col;
+          if (count % 4 == 0) material_col = { color: '#FF0000' };
+          else material_col = { color: '#880000' };
+
+          let geometry = new THREE.BoxGeometry(0.0015, 0.0015, 0.0015);
+          let material = new THREE.MeshBasicMaterial(material_col);  //素材を変えることができる; 
+
+          let box = new THREE.Mesh(geometry, material);
+          box.position.set(y, 0.005, x);
+          scene.add(box);
+        }
+
+        let material_col;
+        if (count % 4 == 0) material_col = { color: '#FFFF00' };
+        else material_col = { color: '#888800' };
+
+        geometry = new THREE.BoxGeometry(0.0015, 0.0015, 0.0015);
+        material = new THREE.MeshBasicMaterial(material_col);  //素材を変えることができる; 
+
+        let box2 = new THREE.Mesh(geometry, material);
+        box2.position.set(y, 0.02 + v, x);
+        scene.add(box2);
+
+        robot_x_pre = x;
+        robot_y_pre = y;
+
+      }
+    }
+
+    var target_x_pre = 0.0;
+    var target_y_pre = 0.0;
+    function setTargetPos(x, y, ang, v, count) {
+
+      if (v > 0.01)
+      {
+        let material_col;
+        if (count % 4 == 0) material_col = { color: '#0000FF' };
+        else material_col = { color: '#000088' };
+
+        let geometry = new THREE.BoxGeometry(0.0015, 0.0015, 0.0015);
+        let material = new THREE.MeshBasicMaterial(material_col);  //素材を変えることができる
+
+        let box = new THREE.Mesh(geometry, material);
+        box.position.set(y, 0.01, x);
+        scene.add(box);
+      }
+
+      let material_col;
+      if (count % 4 == 0) material_col = { color: '#00FFFF' };
+      else material_col = { color: '#008888' };
+
+      geometry = new THREE.BoxGeometry(0.0015, 0.0015, 0.0015);
+      material = new THREE.MeshBasicMaterial(material_col);  //素材を変えることができる; 
+
+      let box2 = new THREE.Mesh(geometry, material);
+      box2.position.set(y, 0.02 + v, x);
+      scene.add(box2);
+
+      target_x_pre = x;
+      target_y_pre = y;
+
+    }
+
+    function setNeedle(x, y) {
+      let material_col = { color: '#888800' };
+
+      let geometry = new THREE.BoxGeometry(0.0015, 0.18, 0.0015);
+      let material = new THREE.MeshBasicMaterial(material_col);  //素材を変えることができる; 
+
+      let box = new THREE.Mesh(geometry, material);
+      box.position.set(y, 0.0, x);
+      scene.add(box);
+    }
+
+
+    function initWallSensor(scene_){
+
+      let geometry = new THREE.CylinderGeometry( 0.002, 0.002, 0.04, 4, false );
+      let material = new THREE.MeshBasicMaterial( {color: 0xffff00, opacity:0.6, transparent: true} );
+      let ws_l = new THREE.Mesh( geometry, material );    
+      ws_l.position.set(0.045+0.025, 0.005, 0.045+0.01);
+      ws_l.rotation.set(Math.PI / 2, 0, Math.PI / 4);
+      scene_.add(ws_l);
+
+      geometry = new THREE.CylinderGeometry( 0.002, 0.002, 0.04, 4, false );
+      material = new THREE.MeshBasicMaterial( {color: 0xffff00, opacity:0.6, transparent: true} );
+      let ws_r = new THREE.Mesh( geometry, material );    
+      ws_r.position.set(0.045+0.025, 0.005, 0.045-0.01);
+      ws_r.rotation.set(Math.PI / 2, 0, Math.PI *3 / 4);
+      scene_.add(ws_r);
+
+      geometry = new THREE.CylinderGeometry( 0.002, 0.002, 0.04, 4, false );
+      material = new THREE.MeshBasicMaterial( {color: 0xffff00, opacity:0.6, transparent: true} );
+      let ws_rf = new THREE.Mesh( geometry, material );    
+      ws_rf.position.set(0.045+0.025, 0.005, 0.045+0.015);
+      ws_rf.rotation.set(Math.PI / 2, 0, Math.PI * 1.05 / 2);
+      scene_.add(ws_rf);
+
+      geometry = new THREE.CylinderGeometry( 0.002, 0.002, 0.04, 4, false );
+      material = new THREE.MeshBasicMaterial( {color: 0xffff00, opacity:0.6, transparent: true} );
+      let ws_lf = new THREE.Mesh( geometry, material );    
+      ws_lf.position.set(0.045+0.025, 0.005, 0.045-0.015);
+      ws_lf.rotation.set(Math.PI / 2, 0, Math.PI * 0.95 / 2);
+      scene_.add(ws_lf);
+
+      let ws_list = [ws_lf, ws_r, ws_l, ws_rf];
+      return ws_list;
+    }
+
+    //白線の初期化
+    function initWhiteLine(scene_) {
+
+      let material = new THREE.LineBasicMaterial({
+        color: 0xffffff
+      });
+
+      for (let i = 0; i < 65; i++) {
+        let geometry = new THREE.Geometry();
+        geometry.vertices.push(
+          new THREE.Vector3(0, 0, 0.09 / 2 * i),
+          new THREE.Vector3(0.09 * 32, 0, 0.09 / 2 * i)
+          //new THREE.Vector3(10, 0, 0)
+        );
+        let line = new THREE.Line(geometry, material);
+        scene_.add(line);
+
+        geometry = new THREE.Geometry();
+        geometry.vertices.push(
+          new THREE.Vector3(0.09 / 2 * i, 0, 0),
+          new THREE.Vector3(0.09 / 2 * i, 0, 0.09 * 32)
+          //new THREE.Vector3(10, 0, 0)
+        );
+        line = new THREE.Line(geometry, material);
+        scene_.add(line);
+      }
+
+    }
+
+    //迷路区画表示用文字_X方向
+
+    //迷路一区画の大きさの文字列を描画
+    function drawLetter(scene_, text, bg_color, text_color) {
+      let texture_size = {
+        width: 128,
+        height: 128
+      };
+
+      function texture() {
+        let canvas_ = document.createElement('canvas');
+        canvas_.width = texture_size.width;
+        canvas_.height = texture_size.height;
+
+        let context = canvas_.getContext('2d');
+
+        context.fillStyle = bg_color; //'rgba(0, 0, 255, 0.25)';
+        context.fillRect(0, 0, texture_size.width, texture_size.height);
+        context.font = " 110px 'Hiragino Kaku Gothic ProN' ,'メイリオ', sans-serif";
+        context.textAlign = 'center';
+        context.fillStyle = text_color; //"#ffffff";
+        context.fillText(text, canvas_.width * 0.5, canvas_.height * 0.82);
+
+        let texture_ = new THREE.Texture(canvas_);
+        texture_.needsUpdate = true;
+        return texture_;
+      }
+
+      let material = new THREE.MeshBasicMaterial({
+        map: texture(),
+        side: THREE.DoubleSide,
+        transparent: true
+      });
+
+      let geometry = new THREE.PlaneGeometry(texture_size.width, texture_size.height);
+
+      let mesh = new THREE.Mesh(geometry, material);
+      mesh.scale.set(0.0009 / 2, 0.0009 / 2, 0.0009 / 2);
+      //mesh.position.set(0.0, 0.01, 0);
+      scene_.add(mesh);
+      //mesh.rotation.set(-Math.PI / 2, 0, 0);
+      return mesh;
+    }
+
+    function initLetterCoor_x(scene_) {
+      for (let i = 0; i < 32; i++) {
+        letter = drawLetter(scene_, ("0" + i).slice(-2), 'rgba(0, 0, 255, 0.25)', "#ffffff");
+        letter.position.set(-0.09, 0.02, 0.045 + 0.09 * i);
+        letter.rotation.set(-Math.PI / 2.0, 0, -Math.PI / 2.0);
+      }
+    }
+
+
+    //迷路区画表示用文字_Y方向
+    function initLetterCoor_y(scene_) {
+      for (let i = 0; i < 32; i++) {
+        letter = drawLetter(scene_, ("0" + i).slice(-2), 'rgba(0, 0, 255, 0.25)', "#ffffff");
+        letter.position.set(0.045 + 0.09 * i, 0.02, -0.09);
+        letter.rotation.set(-Math.PI / 2.0, 0, -Math.PI / 2.0);
+      }
+    }
+
+    //文字列を追加
+    function addMsgFlag(text, x, y) {
+      scene_ = scene;
+      let texture_size = {
+        width: 256,
+        height: 32
+      };
+
+      function texture() {
+        let canvas_ = document.createElement('canvas');
+        canvas_.width = texture_size.width;
+        canvas_.height = texture_size.height;
+
+        let context = canvas_.getContext('2d');
+
+        context.fillStyle = 'rgba(255, 255, 0, 0.25)';
+        context.fillRect(0, 0, texture_size.width, texture_size.height);
+        context.font = " 12px 'Hiragino Kaku Gothic ProN' ,'メイリオ', sans-serif";
+        context.textAlign = 'center';
+        context.fillStyle = "#ffffff";
+        context.fillText(text, canvas_.width * 0.5, canvas_.height * 0.5);
+
+        let texture_ = new THREE.Texture(canvas_);
+        texture_.needsUpdate = true;
+        return texture_;
+      }
+
+      let material = new THREE.MeshBasicMaterial({
+        map: texture(),
+        side: THREE.DoubleSide,
+        transparent: true
+      });
+
+      let geometry = new THREE.PlaneGeometry(texture_size.width, texture_size.height);
+
+      let mesh = new THREE.Mesh(geometry, material);
+      mesh.scale.set(0.0009 / 2, 0.0009 / 2, 0.0009 / 2);
+      mesh.position.set(y, 0.25, x+0.05);
+      mesh.rotation.set(0, -Math.PI / 2, 0);
+      scene_.add(mesh);
+
+      {
+        let material_col = { color: '#ffff00', transparent: true, opacity:0.25 };
+        let geometry = new THREE.BoxGeometry(0.0015, 0.49, 0.0015);
+        let material = new THREE.MeshBasicMaterial(material_col);  //素材を変えることができる; 
+
+        let box = new THREE.Mesh(geometry, material);
+        box.position.set(y, 0.0, x);
+        scene_.add(box);
+      }  
+
+      return mesh;      
+    }
+
+
+
+    //受信パケット表示の更新処理
+    let logno_console = 0;
+    function addMessageConsole(value) {
+      let msg = value.replace(/[!@$%<>'"&|]/g, ''); //タグ記号とかいくつか削除
+      let timestamp = parseInt(msg.slice(16, 23 + 1), 16);
+      //console.log("msg" + msg);
+      //console.log(intList.length)
+
+      // 現在のローカル時間が格納された、Date オブジェクトを作成する
+      $("#msg_list").prepend("<div class='msg" + logno_console + "' style ='font-size:small;' > " + "[" + logno_console + "] " + msg + "</div>");
+      logno_console++;
+      vis_num = 10;
+      if (logno_console > vis_num - 1) {
+        $('#msg_list > .msg' + (logno_console - vis_num)).remove();
+      }
+
+    }
+
+    function updateDataView(time, bat, V_l, V_r, x, y, ang, v) {
+      document.getElementById('mouse_time').innerText = (time).toFixed(4);
+      document.getElementById('mouse_bat').innerText = (bat).toFixed(4);
+      document.getElementById('mouse_x').innerText = (x).toFixed(4);
+      document.getElementById('mouse_y').innerText = (y).toFixed(4);
+      document.getElementById('mouse_ang').innerText = (ang).toFixed(4);
+      document.getElementById('mouse_v').innerText = (v).toFixed(4);
+      document.getElementById('maze_x').innerText = (x / 0.09).toFixed(4);
+      document.getElementById('maze_y').innerText = (y / 0.09).toFixed(4);
+      document.getElementById('mouse_V_l').innerText = V_l.toFixed(4);
+      document.getElementById('mouse_V_r').innerText = V_r.toFixed(4);
+
+    }
+
+    function updateWallSensorView(lf, l, r, rf) {
+      document.getElementById('wall_sen_lf').innerText = (lf).toFixed(0);
+      document.getElementById('wall_sen_l').innerText = (l).toFixed(0);
+      document.getElementById('wall_sen_r').innerText = (r).toFixed(0);
+      document.getElementById('wall_sen_rf').innerText = (rf).toFixed(0);
+    }
+
+
+  </script>
+
+  <div id="msg_list" style="position:absolute;
+              left:100px; top:30px;
+              z-index: 100;
+              height:130px;
+              width:800px;
+              background-color:rgba(0,0,0,0.75);
+              color:#FFF;
+              font-size:small;
+              text-shadow: 3px 3px 1px rgba(0,0,0,1.0);
+              font-family: 'Inconsolata', 'Source Code Pro','ＭＳ ゴシック';
+              opacity: 0.85">
+
+  </div>
+
+  <div id="data_view" style="position:absolute;
+  left:925px; top:30px;
+  z-index: 100;
+  height:480px;
+  width:300px;
+  background-color:rgba(0,0,0,0.75);
+  color:#FFF;
+  font-size:x-large;
+  text-shadow: 3px 3px 1px rgba(0,0,0,1.0);
+  font-family: 'Inconsolata', 'Source Code Pro','ＭＳ ゴシック';
+  opacity: 0.85">
+
+    <font style="font-size:20pt;" color="#ffffff"><b>起動時間・Bat電圧</b></font>　<br>
+    <font style="font-size:20pt;" color="#ffffff">　time: </font>
+    <font style="font-size:20pt;" color="#ffffff" id="mouse_time" 　　>value</font> <br>
+    <font style="font-size:20pt;" color="#ffffff">　V: </font>
+    <font style="font-size:20pt;" color="#ffffff" id="mouse_bat" 　　>value</font> <br>
+    <font style="font-size:20pt;" color="#ffffff">　V_R: </font>
+    <font style="font-size:20pt;" color="#ffffff" id="mouse_V_r" 　　>value</font> <br>
+    <font style="font-size:20pt;" color="#ffffff">　V_L: </font>
+    <font style="font-size:20pt;" color="#ffffff" id="mouse_V_l" 　　>value</font> <br>
+
+    <font style="font-size:20pt;" color="#ffffff"><b>推定位置・角度・速度</b></font>　<br>
+    <font style="font-size:20pt;" color="#ffffff">　x: </font>
+    <font style="font-size:20pt;" color="#ffffff" id="mouse_x" 　　>value</font> <br>
+    <font style="font-size:20pt;" color="#ffffff">　y: </font>
+    <font style="font-size:20pt;" color="#ffffff" id="mouse_y" 　　>value</font> <br>
+    <font style="font-size:20pt;" color="#ffffff">　ang: </font>
+    <font style="font-size:20pt;" color="#ffffff" id="mouse_ang" 　　>value</font> <br>
+    <font style="font-size:20pt;" color="#ffffff">　v: </font>
+    <font style="font-size:20pt;" color="#ffffff" id="mouse_v" 　　>value</font> <br>
+    <font style="font-size:20pt;" color="#ffffff"><b>迷路座標</b></font>　<br>
+    <font style="font-size:20pt;" color="#ffffff">　x: </font>
+    <font style="font-size:20pt;" color="#ffffff" id="maze_x" 　　>value</font> <br>
+    <font style="font-size:20pt;" color="#ffffff">　y: </font>
+    <font style="font-size:20pt;" color="#ffffff" id="maze_y" 　　>value</font> <br>
+    <font style="font-size:20pt;" color="#ffffff"><b>壁センサ</b></font>　<br>
+    <font style="font-size:20pt;" color="#ffffff">　lf: </font>
+    <font style="font-size:20pt;" color="#ffffff" id="wall_sen_lf" 　　>value</font> <br>
+    <font style="font-size:20pt;" color="#ffffff">　l: </font>
+    <font style="font-size:20pt;" color="#ffffff" id="wall_sen_l" 　　>value</font> <br>
+    <font style="font-size:20pt;" color="#ffffff">　r: </font>
+    <font style="font-size:20pt;" color="#ffffff" id="wall_sen_r" 　　>value</font> <br>
+    <font style="font-size:20pt;" color="#ffffff">　rf: </font>
+    <font style="font-size:20pt;" color="#ffffff" id="wall_sen_rf" 　　>value</font> <br>
+
+
+
+  </div>
+
+</body>
+
+</html>

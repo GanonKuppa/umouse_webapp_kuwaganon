@@ -1,0 +1,265 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>μMouse Browser Console </title>
+
+  <!-- フォントの読み込み -->
+  <link href="https://fonts.googleapis.com/css?family=Inconsolata|Press+Start+2P|Source+Code+Pro" rel="stylesheet">
+  <!-- BootstrapのCSS読み込み -->
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <!-- jQuery読み込み -->
+  <script src="./js/jquery-latest.js"></script>
+  <!-- BootstrapのJS読み込み -->
+  <script src="./js/bootstrap.min.js"></script>
+  <!-- socket.ioを使うためのライブラリの読み込み -->
+  <script type="text/javascript" src="/socket.io/socket.io.js"></script>
+  <!-- cssの読み込み -->
+  <link href="./css/graph.css" rel="stylesheet">
+  <!-- dygraphの読み込み -->
+  <link rel="stylesheet" src="./css/dygraph.min/dygraph.min.css" />
+  <script src="./js/dygraph.min.js"></script>
+
+
+
+
+  <!--javascriptの記述 -->
+  <script type="text/javascript" src="./js/util.js"></script>
+  <script type="text/javascript">
+
+    var logno_topic_list = 0;
+    var logno_server_status = 0;
+
+    //printfコンソール用グローバル変数
+    var last_msg = "";
+    var logno_message = 0;
+    var scroll_flag = false;
+    var logno_console = 0;
+
+    let server_ip = "";
+    let server_port = "";;
+    let message_len = 0;
+    $.getJSON("../json/param.json", function (data) {
+      server_ip = data.SERVER_ID;
+      server_port = data.SERVER_PORT;
+      message_len = data.MESSAGE_LEN;
+    })
+
+
+
+    $(document).ready(function () {
+        $("#header").load("header.html");
+        $("#footer").load("footer.html");
+
+        //サーバとのsocket_ioでの接続
+        var s = io.connect('http://' + server_ip + ':' + server_port);
+        // 接続確立時
+        s.on("connect", function() {
+          s.emit("C2S:mqtt-sub/query_mqtt_topic", {
+            value: "query"
+          });
+          console.log("con");
+
+          topics = "TEST, presence, mouse, gamepad";
+        });
+         // 接続切断時
+        s.on("disconnect", function(client) {
+          console.log("dis_con");
+        });
+
+        //mqttのメッセージをサーバーが受信時
+        s.on("mqtt_message", function(data) {
+          console.log(data);
+          topic =  data.topic;
+          payload = data.payload;
+
+          console.log(topic);
+          if(topic == "mouse"){
+
+            var data_view = new DataView(payload);
+            var intList = [];
+            for (var i = 0; i < message_len; i = i + 1) {
+              intList.push(data_view.getUint8(i, true));
+            }
+
+            reflectData(intList);
+          }
+
+        });
+
+        //受信したデータを画面に反映
+        function reflectData(intList) {
+          //console.log("reflectData");
+          var sum = 0;
+          for (var i = 7; i < message_len; i++) sum += intList[i];
+          sum = sum % 256;
+          if (sum != intList[6]) {
+            console.log("chksum err" + intList[6] + "  " + sum);
+            return;
+          }
+
+          //電圧
+          timestamp = intList[11] + (intList[10] << 8) + (intList[9] << 16) + (intList[8] << 24);
+
+          byte_num =  parseInt(GetQueryString().byte_num, 10);
+
+          var val = 0;
+          //console.log($('input[name=mode]:checked').val());
+          if($('input[name=mode]:checked').val() === 'uint'){
+            val = intList[byte_num + 1] + (intList[byte_num] << 8);
+          }
+          else if($('input[name=mode]:checked').val() === 'int'){
+            val = intList[byte_num + 1] + (intList[byte_num] << 8);
+              if (val > 32767) val = val - 65536;
+          }
+          else if($('input[name=mode]:checked').val() === 'decode'){
+            if(GetQueryString().offset != null && GetQueryString().prop != null && GetQueryString().type != null){
+              var offset = parseFloat(GetQueryString().offset);
+              var prop   = parseFloat(GetQueryString().prop);
+              val = intList[byte_num + 1] + (intList[byte_num] << 8);
+              console.log(GetQueryString().type);
+              if(GetQueryString().type == "int"){
+                if (val > 32767) val = val - 65536;
+              }
+              val = (val - offset) * prop;
+            }
+
+          }
+
+          updateVoltageGraph(timestamp/1000.0, val);
+        }
+
+
+    });
+
+    function GetQueryString() {
+      if (1 < document.location.search.length) {
+        // 最初の1文字 (?記号) を除いた文字列を取得する
+         var query = document.location.search.substring(1);
+
+        // クエリの区切り記号 (&) で文字列を配列に分割する
+         var parameters = query.split('&');
+
+        var result = new Object();
+        for (var i = 0; i < parameters.length; i++) {
+          // パラメータ名とパラメータ値に分割する
+           var element = parameters[i].split('=');
+
+          var paramName = decodeURIComponent(element[0]);
+          var paramValue = decodeURIComponent(element[1]);
+
+          // パラメータ名をキーとして連想配列に追加する
+           result[paramName] = decodeURIComponent(paramValue);
+        }
+        return result;
+      }
+      return null;
+    }
+
+  </script>
+
+
+
+</head>
+
+<body >
+
+  <div class="col-md-10 col-md-offset-1">
+    <br>
+    <div id="div_g" style="width: 100%; height:500px;">　</div>　
+
+  </div>
+  <div class="col-md-10 col-md-offset-1">
+  <br>
+  <p><b>　表示の選択 </b><br>
+    　<input type="radio" name="mode" value="uint" checked checked onclick="func_mode()"> uint
+    <input type="radio" name="mode" value="int"  onclick="func_mode()"  > int
+    <input type="radio" name="mode" value="decode" onclick="func_mode()"> decode
+  </p>
+
+  <p><b>　Stop/Play </b><br>
+    　<input type="radio" name="state" value="play" checked onclick="func_play()"  >play
+       <input type="radio" name="state" value="stop"    >stop
+  </p>
+  <p><b>　グラフのバッファ数 </b><br>
+    　<input type="text" name="buff_size_tb" value="150" style="color:black;" >
+    <input type="button" value=" set " onclick="func_set()" style="color:black;" ><br>
+
+
+  </div>
+
+  <script type="text/javascript">
+
+    var data_move = [];
+    var graph_buff_size = 150;
+
+    if(GetQueryString().mode !=null){
+      $('input[name=mode]').val([GetQueryString().mode])
+    }
+    if(GetQueryString().offset != null && GetQueryString().prop != null && GetQueryString().type != null){
+      $('input[name=mode]').val(['decode']);
+    }
+
+
+
+    title_str = "byte " + GetQueryString().byte_num + "  " + GetQueryString().title;
+    var g = new Dygraph(document.getElementById("div_g"), data_move, {
+      drawPoints: true,
+      //showRoller: true,
+      //valueRange: [6, 10.0],
+      //rollPeriod: 2,
+      labels: ['Time', 'val'],
+      title: title_str ,
+      legend: 'always',
+      animatedZooms: true,
+      showRangeSelector: true,
+      rangeSelectorHeight: 30,
+      rangeSelectorPlotStrokeColor:"rgb(0,200,0)" ,
+      rangeSelectorPlotFillColor:"rgb(60,60,00)",
+      axisLabelWidth:100,
+      titleHeight:100,
+      color: "rgb(0,200,0)",
+      rangeSelectorHeight:20,
+      axisLineWidth:0.5
+
+    });
+
+    // It sucks that these things aren't objects, and we need to store state in window.
+    function updateVoltageGraph(x,y) {
+
+      if($('input[name=state]:checked').val() === 'play'){
+        data_move.push([x, y]);
+      }
+      if (data_move.length < graph_buff_size) {
+        g.updateOptions({
+          'file': data_move
+        });
+
+      } else {
+        data_move.shift();
+        g.updateOptions({
+          'file': data_move
+        });
+
+      }
+    }
+
+    function func_play(){
+      data_move = [];
+    }
+
+    function func_mode(){
+      data_move = [];
+    }
+
+    function func_set(){
+      data_move = [];
+      graph_buff_size = parseInt($('input[name=buff_size_tb]').val(),10);
+    }
+
+  </script>
+
+</body>
+
+</html>

@@ -1,0 +1,366 @@
+<head>
+  <meta charset="UTF-8">
+  <title>μMouse pid-tune </title>
+
+  <!-- Plotly.js -->
+  <script src="./js/plotly-latest.min.js"></script>
+
+  <!-- socket.ioを使うためのライブラリの読み込み -->
+  <script type="text/javascript" src="/socket.io/socket.io.js"></script>
+  
+  <!-- BootstrapのCSS読み込み -->
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <!-- jQuery読み込み -->
+  <script src="./js/jquery-latest.js"></script>
+
+  <!-- cssの読み込み -->
+  <link href="./css/all-page.css" rel="stylesheet">
+
+</head>
+
+<body>
+    <div id="header"></div>
+  <header>
+    <span>　　</span>
+    <span><b>timestamp</b></span>
+    <span id="timestamp_val" >xxxxxx</span>
+    <span>[秒]　　</span>
+    <span><b>voltage</b></span>
+    <span id="voltage_val">xxxxxx</span>
+    <span>[V]　　</span>
+    <input type="button" value="記録開始" onclick="recordStart()">
+    <input type="button" value="記録終了" onclick="recordEnd()">
+  </header>
+  <br>
+  <div id="main">
+    <div id="graph1"></div>
+    <div id="graph2"></div>
+  </div>
+
+  <script>
+//エンコーダ速度, 相補速度, ターゲット速度
+//角速度, ターゲット角速度 
+//角度 推定滑り角
+ 
+1msec = 60byte 
+
+
+    var timestamp_buff = [];
+    var val1_buff = [];
+    var val2_buff = [];
+    var val3_buff = [];
+    var val4_buff = [];
+    var val5_buff = [];
+    var record_flag = false;
+
+    function recordStart(){
+      initGraph();
+      record_flag = true;
+      timestamp_buff = [];
+      val1_buff = [];
+      val2_buff = [];
+      val3_buff = [];
+      val4_buff = [];
+      val5_buff = [];
+    };
+    function recordEnd(){
+      record_flag = false;
+      draw_graph1();
+      draw_graph2();
+    };
+
+    function setVoltage(vol){
+      document.getElementById('voltage_val').innerText = (vol).toFixed(4);
+    }
+
+    function setTimestamp(tstamp){
+      document.getElementById('timestamp_val').innerText = (tstamp).toFixed(4);
+    }
+
+    function draw_graph1() {
+      var val_1_data = {
+        x: timestamp_buff,
+        y: val1_buff,
+        type: 'scattergl',
+        name: 'target',
+        mode: 'markers',
+        marker: {
+          color: "rgba(128,128,128,0.2)",
+          size: 5
+        }
+      };
+
+      var val_2_data = {
+        x: timestamp_buff,
+        y: val2_buff,
+        type: 'scattergl',
+        name: 'v_enc',
+        mode: 'markers',
+        marker: {
+          color: "rgba(0,0,128,0.3)",
+          size: 5
+        }
+      };
+
+      var val_3_data = {
+        x: timestamp_buff,
+        y: val3_buff,
+        type: 'scattergl',
+        name: 'v_acc',
+        mode: 'markers',
+        marker: {
+          color: "rgba(128,0,128,0.3)",
+          size: 5
+        }
+      };
+
+      var val_5_data = {
+        x: timestamp_buff,
+        y: val5_buff,
+        type: 'scattergl',
+        name: 'v_comp',
+        mode: 'markers',
+        marker: {
+          color: "rgba(128,128,0,0.3)",
+          size: 5
+        }
+      };
+
+
+      var data = [val_1_data, val_2_data, val_3_data, val_5_data];
+
+      var layout = {
+        title: '速度 vs 時間',
+        plot_bgcolor: "rgba(5, 5, 5, 0.05)",
+        paper_bgcolor: "rgba(5, 255, 5, 0.03)",
+        xaxis: {
+          rangeslider: {thickness:0.05},
+          title: '秒[ms]',
+          titlefont: {
+            family: 'Inconsolata',
+            size: 18,
+            color: '#7f7f7f'
+          }
+        },
+        yaxis: {
+          title: '速度[m/s]',
+          titlefont: {
+            family: 'Inconsolata',
+            size: 18,
+            color: '#7f7f7f'
+          }
+        },
+        showlegend: true,
+        margin: {
+          l: 50,
+          r: 50,
+          b: 50,
+          t: 50,
+          pad: 4
+        },
+
+      };
+
+      Plotly.react('graph1', data, layout);
+
+    }
+
+    function draw_graph2() {
+      var val_4_data = {
+        x: timestamp_buff,
+        y: val4_buff,
+        type: 'scattergl',
+        name: 'target',
+        mode: 'markers',
+        marker: {
+          color: "rgba(128,0,0,0.3)",
+          size: 5
+        }
+      };
+
+      var data = [val_4_data]
+      var layout = {
+        title: '加速度 vs 時間',
+        plot_bgcolor: "rgba(5, 5, 5, 0.05)",
+        paper_bgcolor: "rgba(5, 255, 5, 0.03)",
+        xaxis: {
+          rangeslider: {thickness:0.05},
+          title: '秒[ms]',
+          titlefont: {
+            family: 'Inconsolata',
+            size: 18,
+            color: '#7f7f7f'
+          }
+        },
+        yaxis: {
+          title: '加速度[m/ss]',
+          titlefont: {
+            family: 'Inconsolata',
+            size: 18,
+            color: '#7f7f7f'
+          }
+        },
+        showlegend: true,
+        margin: {
+          l: 50,
+          r: 50,
+          b: 50,
+          t: 50,
+          pad: 4
+        },
+      };
+
+      Plotly.react('graph2', data, layout);
+    }
+/*
+    // ------------- mqtt -------------
+    
+    var host_ = 'mqtt://192.168.10.4';
+    var mqtt = require('./js/node_modules/mqtt');
+    var options = {
+      port: 1883,
+      host: host_,
+      clientId: 'mqttjs_' + Math.random().toString(16).substr(2, 8),
+      keepalive: 60,
+      reconnectPeriod: 1000,
+      clean: false,
+      protocolId: "MQTT",
+      protocolVersion: 4,
+
+    };
+
+    var mqtt_client = mqtt.connect(host_, options);
+    mqtt_client.subscribe("mouse/#");
+    mqtt_client.subscribe("gamepad/#");
+
+    mqtt_client.on('connect', function () {
+      mqtt_client.publish('presence', 'This is uMouse graph_datas Hello mqtt');
+      console.log("MQTTで接続");
+
+    });
+
+    mqtt_client.on('message', function (topic, message, packet) {
+      var topic_array = topic.split("/");
+      var message_array = message;
+      topic = topic_array[0];
+      payload = message;
+      console.log(message);
+      if (topic == "mouse") reflectData(payload);
+    });
+
+    //受信したデータを画面に反映
+    function reflectData(intList) {
+      var message_len = 400;
+      var sum = 0;
+      for (var i = 7; i < message_len; i++) sum += intList[i];
+      sum = sum % 256;
+      if (sum != intList[6]) {
+        console.log("chksum err" + intList[6] + "  " + sum);
+        return;
+      }
+
+      
+      timestamp_int = (intList[11] + (intList[10] << 8) + (intList[9] << 16) + (intList[8] << 24));
+      
+      timestamp = timestamp_int/1000.0;
+      voltage = 15.1 / 5.1 * ((intList[12] << 8) + intList[13]) * 3.3 / 4096;
+      setVoltage(voltage);
+      setTimestamp(timestamp);
+      
+      if(record_flag == true){
+        var start_byte_list = [16, 76, 136, 302]; 
+        var prop_list = [1.0/3000.0, 1.0/3000.0, 1.0/3000.0, 1.0/20.0];
+        var buff_list = [val1_buff, val2_buff, val3_buff, val4_buff];
+
+        for(var i=0;i<30;i++){
+          timestamp_buff.push(timestamp - 30.0/1000.0 + i/1000.0);
+          for(var j=0;j<4;j++){
+            byte_num = start_byte_list[j] + 58 - 2*i;
+            var val = intList[byte_num + 1] + intList[byte_num] * 256;
+            if (val > 32767) val = val - 65536;
+            val = val * prop_list[j];
+            buff_list[j].push(val);
+          }
+
+        }
+
+        for (var i=0;i<3;i++){
+          byte_num = 362 + 4 - 2*i;
+          var val = intList[byte_num + 1] + intList[byte_num] * 256;
+          if (val > 32767) val = val - 65536;
+          val = val * 1.0/3000.0;
+          val5_buff.push(val);
+  
+        }        
+
+        for (var i=0;i<27;i++){
+          byte_num = 196 + 52 - 2*i;
+          var val = intList[byte_num + 1] + intList[byte_num] * 256;
+          if (val > 32767) val = val - 65536;
+          val = val * 1.0/3000.0;
+          val5_buff.push(val);
+  
+        }
+
+
+
+      }
+      
+    }
+*/
+    function initGraph() {
+      var x_ = [];
+      var y_ = [];
+      for (var i = 0; i < 5000; i++) {
+        x_.push(i);
+        y_.push(0);
+      }
+      draw_graph1();
+      draw_graph2();
+    }
+    
+    
+    initGraph();
+    $(document).ready(function () {
+      $("#header").load("header.html");
+      $("#footer").load("footer.html");
+
+      //サーバとのsocket_ioでの接続
+      // 接続確立時
+      s.on("connect", function () {
+        s.emit("C2S:mqtt-sub/query_mqtt_topic", {
+          value: "query"
+        });
+        console.log("con");
+
+        topics = "TEST, presence, mouse, gamepad";
+      });
+      // 接続切断時
+      s.on("disconnect", function (client) {
+        console.log("dis_con");
+      });
+
+      //mqttのメッセージをサーバーが受信時
+      s.on("mqtt_message", function (data) {
+        //console.log(data);
+        topic = data.topic;
+        payload = data.payload;
+
+        if (topic == "mouse") {
+          var data_view = new DataView(payload);
+          var intList = [];
+          for (var i = 0; i < message_len; i = i + 1) {
+            intList.push(data_view.getUint8(i, true));
+          }
+          reflectData(intList);
+        }
+
+      });
+
+    });
+
+
+
+  </script>
+</body>
+
