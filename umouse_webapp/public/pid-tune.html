@@ -1,6 +1,7 @@
 <head>
   <meta charset="UTF-8">
   <title>μMouse pid-tune </title>
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 
   <!-- Plotly.js -->
   <script src="./js/plotly-latest.min.js"></script>
@@ -19,7 +20,8 @@
 </head>
 
 <body>
-    <div id="header"></div>
+  <div id="header"></div>
+<!--
   <header>
     <span>　　</span>
     <span><b>timestamp</b></span>
@@ -32,11 +34,28 @@
     <input type="button" value="記録終了" onclick="recordEnd()">
   </header>
   <br>
-  <div id="main">
-    <div id="graph1"></div>
-    <div id="graph2"></div>
-  </div>
+-->
+  <main>
+    <div class="row" style="margin : 15px">
+        <div class=" col-sm-12">
+          <div id="graph1" style="margin : 15px"></div>      
+      </div>
+      
+    </div>
+    <div class="row" style="margin : 15px">
+        <div class=" col-sm-12">
+          <div id="graph2" style="margin : 15px"></div>      
+      </div>
+      
+    </div>
 
+  </main>
+  
+
+
+
+
+  
   <script>
 //エンコーダ速度, 相補速度, ターゲット速度
 //角速度, ターゲット角速度 
@@ -127,14 +146,13 @@
       };
 
 
-      var data = [val_1_data, val_2_data, val_3_data, val_5_data];
-
+      var data = [val_1_data, val_2_data, val_3_data, val_5_data];      
       var layout = {
         title: '速度 vs 時間',
         plot_bgcolor: "rgba(5, 5, 5, 0.05)",
-        paper_bgcolor: "rgba(5, 255, 5, 0.03)",
+        paper_bgcolor: "rgba(5, 255, 5, 0.05)",
         xaxis: {
-          rangeslider: {thickness:0.05},
+          //rangeslider: {thickness:0.05},
           title: '秒[ms]',
           titlefont: {
             family: 'Inconsolata',
@@ -157,7 +175,7 @@
           b: 50,
           t: 50,
           pad: 4
-        },
+        }        
 
       };
 
@@ -178,13 +196,13 @@
         }
       };
 
-      var data = [val_4_data]
+      var data = [val_4_data]      
       var layout = {
         title: '加速度 vs 時間',
         plot_bgcolor: "rgba(5, 5, 5, 0.05)",
-        paper_bgcolor: "rgba(5, 255, 5, 0.03)",
+        paper_bgcolor: "rgba(5, 255, 5, 0.05)",
         xaxis: {
-          rangeslider: {thickness:0.05},
+          //rangeslider: {thickness:0.05},
           title: '秒[ms]',
           titlefont: {
             family: 'Inconsolata',
@@ -207,9 +225,10 @@
           b: 50,
           t: 50,
           pad: 4
-        },
-      };
+        },        
 
+      };
+      
       Plotly.react('graph2', data, layout);
     }
 /*
@@ -309,22 +328,48 @@
     }
 */
     function initGraph() {
-      var x_ = [];
-      var y_ = [];
-      for (var i = 0; i < 5000; i++) {
-        x_.push(i);
-        y_.push(0);
-      }
       draw_graph1();
       draw_graph2();
+   /*
+        $.when(
+          function(){
+            var x_ = [];
+        var y_ = [];
+        for (var i = 0; i < 3000; i++) {
+          x_.push(i);
+          y_.push(0);
+        }
+            draw_graph1();
+            draw_graph2();
+          }
+        ).done(function(){
+          let w = $(graph1).innerWidth();
+          update = {
+            width: w
+          };
+          Plotly.relayout(graph1, update);
+          Plotly.relayout(graph2, update);
+        });
+*/
+
+     
     }
     
     
+
+
+
     initGraph();
     $(document).ready(function () {
       $("#header").load("header.html");
       $("#footer").load("footer.html");
-
+      let w = $(window).width() * 1/1.15;
+      update = {
+        width: w
+      };
+      Plotly.relayout(graph1, update);
+      Plotly.relayout(graph2, update);
+/*            
       //サーバとのsocket_ioでの接続
       // 接続確立時
       s.on("connect", function () {
@@ -356,9 +401,17 @@
         }
 
       });
-
+*/
     });
 
+    $(window).resize(function(){
+      let w = $(graph1).innerWidth();
+      update = {
+        width: w
+      };
+      Plotly.relayout(graph1, update);
+      Plotly.relayout(graph2, update);
+    });
 
 
   </script>
