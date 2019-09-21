@@ -8,7 +8,10 @@
 
   <!-- socket.ioを使うためのライブラリの読み込み -->
   <script type="text/javascript" src="/socket.io/socket.io.js"></script>
-  
+
+  <!-- 受信メッセージパース用 -->
+  <script type="text/javascript" src="./js/umouseMessageParser.js"></script>
+
   <!-- BootstrapのCSS読み込み -->
   <link href="css/bootstrap.min.css" rel="stylesheet">
   <!-- jQuery読み込み -->
@@ -21,139 +24,250 @@
 
 <body>
   <div id="header"></div>
-<!--
-  <header>
-    <span>　　</span>
-    <span><b>timestamp</b></span>
-    <span id="timestamp_val" >xxxxxx</span>
-    <span>[秒]　　</span>
-    <span><b>voltage</b></span>
-    <span id="voltage_val">xxxxxx</span>
-    <span>[V]　　</span>
-    <input type="button" value="記録開始" onclick="recordStart()">
-    <input type="button" value="記録終了" onclick="recordEnd()">
-  </header>
-  <br>
--->
+
   <main>
     <div class="row" style="margin : 15px">
-        <div class=" col-sm-12">
-          <div id="graph1" style="margin : 15px"></div>      
+      <div class=" col-sm-12">
+        <input type="button" class="btn btn-danger btn-lg" value="Start" onclick="recordStart()">
+        <input type="button" class="btn btn-success btn-lg" value="Stop" onclick="recordEnd()">
+        <span><b>　　timestamp</b></span>
+        <span id="timestamp_val">xxxxxx</span>
+        <span>[秒]　　</span>
+        <span><b>voltage</b></span>
+        <span id="voltage_val">xxxxxx</span>
+        <span>[V]　　</span>
       </div>
-      
     </div>
+
     <div class="row" style="margin : 15px">
-        <div class=" col-sm-12">
-          <div id="graph2" style="margin : 15px"></div>      
+      <div class=" col-sm-12">
+        <div id="graph1" style="margin : 15px"></div>
+        <div id="graph2" style="margin : 15px"></div>
+        <div id="graph3" style="margin : 15px"></div>
+        <div id="graph4" style="margin : 15px"></div>
+        <div id="graph5" style="margin : 15px"></div>
+        <div id="graph6" style="margin : 15px"></div>
+        <div id="graph7" style="margin : 15px"></div>
+        <div id="graph8" style="margin : 15px"></div>
+        <div id="graph9" style="margin : 15px"></div>
+        <div id="graph10" style="margin : 15px"></div>
       </div>
-      
     </div>
 
   </main>
-  
 
 
-
-
-  
   <script>
-//エンコーダ速度, 相補速度, ターゲット速度
-//角速度, ターゲット角速度 
-//角度 推定滑り角
- 
-//1msec = 60byte 
+    // タイムスタンプ
+    var timestamp_buff = [0];
 
+    // graph1
+    var g1_title = "エンコーダ速度, 相補フィルタ速度, 加速度積分速度, 軌跡ターゲット速度";
+    var g1_y_title = "速度[m/s]";
+    var g1_v1_buff = [0]; // v_enc
+    var g1_v2_buff = [0]; // v_comp
+    var g1_v3_buff = [0]; // v_acc
+    var g1_v4_buff = [0]; // v_traj_tg
 
-    var timestamp_buff = [];
-    var val1_buff = [];
-    var val2_buff = [];
-    var val3_buff = [];
-    var val4_buff = [];
-    var val5_buff = [];
+    // graph2
+    var g2_title = "軌跡ターゲット前加速度, 前加速度, 軌跡ターゲット横加速度 横加速度";
+    var g2_y_title = "加速度[m/s/s]";
+    var g2_v1_buff = [0]; // ay_traj_tg
+    var g2_v2_buff = [0]; // ay_sen
+    var g2_v3_buff = [0]; // ax_traj_tg
+    var g2_v4_buff = [0]; // ax_sen
+
+    // graph3  
+    var g3_title = "エンコーダ角速度, ジャイロ角速度, ターゲット角速度, 軌跡ターゲット角速度";
+    var g3_y_title = "角速度[deg/s]";
+    var g3_v1_buff = [0]; // ang_v_enc
+    var g3_v2_buff = [0]; // ang_v_gyro
+    var g3_v3_buff = [0]; // ang_v_tg
+    var g3_v4_buff = [0]; // ang_v_traj_tg
+
+    // graph4   
+    var g4_title = "軌跡ターゲット角度 ターゲット角度, 角度 推定滑り角";
+    var g4_y_title = "角度[deg]";
+    var g4_v1_buff = [0]; // ang_traj_tg
+    var g4_v2_buff = [0]; // ang_tg
+    var g4_v3_buff = [0]; // ang_int_gyro
+    var g4_v4_buff = [0]; // ang_slip
+
+    // graph5
+    var g5_title = "前左壁センサ, 前右壁センサ, 左壁センサ, 右壁センサ";
+    var g5_y_title = "ADC[int16_t]";
+    var g5_v1_buff = [0]; // al_sen
+    var g5_v2_buff = [0]; // ar_sen
+    var g5_v3_buff = [0]; // l_sen
+    var g5_v4_buff = [0]; // r_sen
+
+    // graph6
+    var g6_title = "duryR, dutyL";
+    var g6_y_title = "duty[%]";
+    var g6_v1_buff = [0]; // duty_r
+    var g6_v2_buff = [0]; // duty_l
+
+    // graph7
+    var g7_title = "v_pidf出力, v_逆起電力FF, v_加速FF";
+    var g7_y_title = "duty[%]";
+    var g7_v1_buff = [0]; // v_pidf
+    var g7_v2_buff = [0]; // v_backemf_FF
+    var g7_v3_buff = [0]; // v_trans_acc_FF
+
+    // graph8
+    var g8_title = "ang_v_pidf出力 ang_v_逆起電力FF, ang_v_角加速FF";
+    var g8_y_title = "duty[%]";
+    var g8_v1_buff = [0]; // ang_v_pidf
+    var g8_v2_buff = [0]; // rot_v_backemf_FF
+    var g8_v3_buff = [0]; // rot_v_acc_FF
+
+    // graph9
+    var g9_title = "ang_pidf出力";
+    var g9_y_title = "角速度目標加算値[deg/s]";
+    var g9_v1_buff = [0]; // ang_pidf
+
+    // graph10
+    var g10_title = "pos_pidf出力, wall_pidf出力";
+    var g10_y_title = "角度目標加算値[deg]";
+    var g10_v1_buff = [0]; // pos_pidf
+    var g10_v2_buff = [0]; // wall_pidf
+
+    // データ記録中かどうかのフラグ
     var record_flag = false;
+    function appendDummyData() {
+      for (var i = 0; i < 3000; i++) {
+        timestamp_buff.push(i);
+        g1_v1_buff.push(0);
+        g1_v2_buff.push(0);
+        g1_v3_buff.push(0);
+        g1_v4_buff.push(0);
+        g2_v1_buff.push(0);
+        g2_v2_buff.push(0);
+        g2_v3_buff.push(0);
+        g2_v4_buff.push(0);
+        g3_v1_buff.push(0);
+        g3_v2_buff.push(0);
+        g3_v3_buff.push(0);
+        g3_v4_buff.push(0);
+        g4_v1_buff.push(0);
+        g4_v2_buff.push(0);
+        g4_v3_buff.push(0);
+        g4_v4_buff.push(0);
+        g5_v1_buff.push(0);
+        g5_v2_buff.push(0);
+        g5_v3_buff.push(0);
+        g5_v4_buff.push(0);
+        g6_v1_buff.push(0);
+        g6_v2_buff.push(0);
+        g7_v1_buff.push(0);
+        g7_v2_buff.push(0);
+        g7_v3_buff.push(0);
+        g8_v1_buff.push(0);
+        g8_v2_buff.push(0);
+        g8_v3_buff.push(0);
+        g9_v1_buff.push(0);
+        g10_v1_buff.push(0);
+        g10_v2_buff.push(0);
+      }
+    }
 
-    function recordStart(){
+    function recordStart() {
       initGraph();
       record_flag = true;
       timestamp_buff = [];
-      val1_buff = [];
-      val2_buff = [];
-      val3_buff = [];
-      val4_buff = [];
-      val5_buff = [];
+      g1_v1_buff = [];
+      g1_v2_buff = [];
+      g1_v3_buff = [];
+      g1_v4_buff = [];
+      g2_v1_buff = [];
+      g2_v2_buff = [];
+      g2_v3_buff = [];
+      g2_v4_buff = [];
+      g3_v1_buff = [];
+      g3_v2_buff = [];
+      g3_v3_buff = [];
+      g3_v4_buff = [];
+      g4_v1_buff = [];
+      g4_v2_buff = [];
+      g4_v3_buff = [];
+      g4_v4_buff = [];
+      g5_v1_buff = [];
+      g5_v2_buff = [];
+      g5_v3_buff = [];
+      g5_v4_buff = [];
+      g6_v1_buff = [];
+      g6_v2_buff = [];
+      g7_v1_buff = [];
+      g7_v2_buff = [];
+      g7_v3_buff = [];
+      g8_v1_buff = [];
+      g8_v2_buff = [];
+      g8_v3_buff = [];
+      g9_v1_buff = [];
+      g10_v1_buff = [];
+      g10_v2_buff = [];
+
     };
-    function recordEnd(){
+
+    function recordEnd() {
       record_flag = false;
       draw_graph1();
       draw_graph2();
+      draw_graph3();
+      draw_graph4();
+      draw_graph5();
+      draw_graph6();
+      draw_graph7();
+      draw_graph8();
+      draw_graph9();
+      draw_graph10();
     };
 
-    function setVoltage(vol){
+    function setVoltage(vol) {
       document.getElementById('voltage_val').innerText = (vol).toFixed(4);
     }
 
-    function setTimestamp(tstamp){
+    function setTimestamp(tstamp) {
       document.getElementById('timestamp_val').innerText = (tstamp).toFixed(4);
     }
 
-    function draw_graph1() {
-      var val_1_data = {
+    function make_wave_data(graph_name, graph_color, graph_buff) {
+      return {
         x: timestamp_buff,
-        y: val1_buff,
+        y: graph_buff,
         type: 'scattergl',
-        name: 'target',
+        name: graph_name,
         mode: 'markers',
         marker: {
-          color: "rgba(128,128,128,0.2)",
+          color: graph_color,
           size: 5
         }
       };
+    }
 
-      var val_2_data = {
+    function make_wave_data_nogl(graph_name, graph_color, graph_buff) {
+      return {
         x: timestamp_buff,
-        y: val2_buff,
-        type: 'scattergl',
-        name: 'v_enc',
+        y: graph_buff,
+        name: graph_name,
         mode: 'markers',
         marker: {
-          color: "rgba(0,0,128,0.3)",
+          color: graph_color,
           size: 5
         }
       };
-
-      var val_3_data = {
-        x: timestamp_buff,
-        y: val3_buff,
-        type: 'scattergl',
-        name: 'v_acc',
-        mode: 'markers',
-        marker: {
-          color: "rgba(128,0,128,0.3)",
-          size: 5
-        }
-      };
-
-      var val_5_data = {
-        x: timestamp_buff,
-        y: val5_buff,
-        type: 'scattergl',
-        name: 'v_comp',
-        mode: 'markers',
-        marker: {
-          color: "rgba(128,128,0,0.3)",
-          size: 5
-        }
-      };
+    }
 
 
-      var data = [val_1_data, val_2_data, val_3_data, val_5_data];      
-      var layout = {
-        title: '速度 vs 時間',
+    function make_wave_layout(title_name, x_axis_name, y_axis_name, bg_color) {
+      return {
+        title: title_name,
         plot_bgcolor: "rgba(5, 5, 5, 0.05)",
-        paper_bgcolor: "rgba(5, 255, 5, 0.05)",
+        paper_bgcolor: bg_color,
+        dragmode: "pan",
         xaxis: {
           //rangeslider: {thickness:0.05},
-          title: '秒[ms]',
+          title: x_axis_name,
           titlefont: {
             family: 'Inconsolata',
             size: 18,
@@ -161,7 +275,7 @@
           }
         },
         yaxis: {
-          title: '速度[m/s]',
+          title: y_axis_name,
           titlefont: {
             family: 'Inconsolata',
             size: 18,
@@ -169,251 +283,257 @@
           }
         },
         showlegend: true,
+
         margin: {
           l: 50,
           r: 50,
           b: 50,
           t: 50,
           pad: 4
-        }        
+        }
 
       };
+    }
 
-      Plotly.react('graph1', data, layout);
+
+    function draw_graph1() {
+      var val_1_data = make_wave_data("v_enc", "rgba(128,128,128,0.2)", g1_v1_buff);
+      var val_2_data = make_wave_data("v_comp", "rgba(0,0,128,0.3)", g1_v2_buff);
+      var val_3_data = make_wave_data("v_acc", "rgba(128,0,128,0.3)", g1_v3_buff);
+      var val_4_data = make_wave_data("v_traj_tg", "rgba(128,128,0,0.3)", g1_v4_buff)
+
+      var data = [val_1_data, val_2_data, val_3_data, val_4_data];
+      var layout = make_wave_layout(g1_title, '秒[ms]', g1_y_title, "rgba(5, 255, 5, 0.05)");
+
+      Plotly.react('graph1', data, layout, { scrollZoom: true });
 
     }
 
     function draw_graph2() {
-      var val_4_data = {
-        x: timestamp_buff,
-        y: val4_buff,
-        type: 'scattergl',
-        name: 'target',
-        mode: 'markers',
-        marker: {
-          color: "rgba(128,0,0,0.3)",
-          size: 5
-        }
-      };
+      var val_1_data = make_wave_data("ay_traj_tg", "rgba(128,128,128,0.2)", g2_v1_buff);
+      var val_2_data = make_wave_data("ay_sen", "rgba(0,0,128,0.3)", g2_v2_buff);
+      var val_3_data = make_wave_data("ax_traj_tg", "rgba(128,0,128,0.3)", g2_v3_buff);
+      var val_4_data = make_wave_data("ax_sen", "rgba(128,128,0,0.3)", g2_v4_buff)
 
-      var data = [val_4_data]      
-      var layout = {
-        title: '加速度 vs 時間',
-        plot_bgcolor: "rgba(5, 5, 5, 0.05)",
-        paper_bgcolor: "rgba(5, 255, 5, 0.05)",
-        xaxis: {
-          //rangeslider: {thickness:0.05},
-          title: '秒[ms]',
-          titlefont: {
-            family: 'Inconsolata',
-            size: 18,
-            color: '#7f7f7f'
-          }
-        },
-        yaxis: {
-          title: '加速度[m/ss]',
-          titlefont: {
-            family: 'Inconsolata',
-            size: 18,
-            color: '#7f7f7f'
-          }
-        },
-        showlegend: true,
-        margin: {
-          l: 50,
-          r: 50,
-          b: 50,
-          t: 50,
-          pad: 4
-        },        
+      var data = [val_1_data, val_2_data, val_3_data, val_4_data];
+      var layout = make_wave_layout(g2_title, '秒[ms]', g2_y_title, "rgba(5, 255, 5, 0.05)");
 
-      };
-      
-      Plotly.react('graph2', data, layout);
+      Plotly.react('graph2', data, layout, { scrollZoom: true });
     }
-/*
-    // ------------- mqtt -------------
-    
-    var host_ = 'mqtt://192.168.10.4';
-    var mqtt = require('./js/node_modules/mqtt');
-    var options = {
-      port: 1883,
-      host: host_,
-      clientId: 'mqttjs_' + Math.random().toString(16).substr(2, 8),
-      keepalive: 60,
-      reconnectPeriod: 1000,
-      clean: false,
-      protocolId: "MQTT",
-      protocolVersion: 4,
+    function draw_graph3() {
+      var val_1_data = make_wave_data("ang_v_enc", "rgba(128,128,128,0.2)", g3_v1_buff);
+      var val_2_data = make_wave_data("ang_v_gyro", "rgba(0,0,128,0.3)", g3_v2_buff);
+      var val_3_data = make_wave_data("ang_v_tg", "rgba(128,0,128,0.3)", g3_v3_buff);
+      var val_4_data = make_wave_data("ang_v_traj_tg", "rgba(128,128,0,0.3)", g3_v4_buff)
 
+      var data = [val_1_data, val_2_data, val_3_data, val_4_data];
+      var layout = make_wave_layout(g3_title, '秒[ms]', g3_y_title, "rgba(5, 5, 255, 0.03)");
+
+      Plotly.react('graph3', data, layout, { scrollZoom: true });
+    };
+    function draw_graph4() {
+      var val_1_data = make_wave_data("ang_traj_tg", "rgba(128,128,128,0.2)", g4_v1_buff);
+      var val_2_data = make_wave_data("ang_tg", "rgba(0,0,128,0.3)", g4_v2_buff);
+      var val_3_data = make_wave_data("ang_int_gyro", "rgba(128,0,128,0.3)", g4_v3_buff);
+      var val_4_data = make_wave_data("ang_slip", "rgba(128,128,0,0.3)", g4_v4_buff)
+
+      var data = [val_1_data, val_2_data, val_3_data, val_4_data];
+      var layout = make_wave_layout(g4_title, '秒[ms]', g4_y_title, "rgba(5, 5, 255, 0.03)");
+
+      Plotly.react('graph4', data, layout, { scrollZoom: true });
+    };
+    function draw_graph5() {
+      var val_1_data = make_wave_data("al_sen", "rgba(128,128,128,0.2)", g5_v1_buff);
+      var val_2_data = make_wave_data("ar_sen", "rgba(0,0,128,0.3)", g5_v2_buff);
+      var val_3_data = make_wave_data("l_sen", "rgba(128,0,128,0.3)", g5_v3_buff);
+      var val_4_data = make_wave_data("r_sen", "rgba(128,128,0,0.3)", g5_v4_buff)
+
+      var data = [val_1_data, val_2_data, val_3_data, val_4_data];
+      var layout = make_wave_layout(g5_title, '秒[ms]', g5_y_title, "rgba(255, 255, 255, 0.3)");
+
+      Plotly.react('graph5', data, layout, { scrollZoom: true });
+    };
+    function draw_graph6() {
+      var val_1_data = make_wave_data("dutyR", "rgba(128,128,128,0.2)", g6_v1_buff);
+      var val_2_data = make_wave_data("dutyL", "rgba(0,0,128,0.3)", g6_v2_buff);
+
+      var data = [val_1_data, val_2_data];
+      var layout = make_wave_layout(g6_title, '秒[ms]', g6_y_title, "rgba(255, 255, 5, 0.05)");
+
+      Plotly.react('graph6', data, layout, { scrollZoom: true });
+    };
+    function draw_graph7() {
+      var val_1_data = make_wave_data("v_pidf", "rgba(128,128,128,0.2)", g7_v1_buff);
+      var val_2_data = make_wave_data("v_backemf_FF", "rgba(0,0,128,0.3)", g7_v2_buff);
+      var val_3_data = make_wave_data("v_trans_acc_FF", "rgba(128,0,128,0.3)", g7_v3_buff);
+
+      var data = [val_1_data, val_2_data, val_3_data];
+      var layout = make_wave_layout(g7_title, '秒[ms]', g7_y_title, "rgba(255, 255, 5, 0.05)");
+
+      Plotly.react('graph7', data, layout, { scrollZoom: true });
+    };
+    function draw_graph8() {
+      var val_1_data = make_wave_data("ang_v_pidf", "rgba(128,128,128,0.2)", g1_v1_buff);
+      var val_2_data = make_wave_data("rot_v_backemf_FF", "rgba(0,0,128,0.3)", g1_v2_buff);
+      var val_3_data = make_wave_data("rot_v_acc_FF", "rgba(128,0,128,0.3)", g1_v3_buff);
+
+      var data = [val_1_data, val_2_data, val_3_data];
+      var layout = make_wave_layout(g8_title, '秒[ms]', g8_y_title, "rgba(255, 255, 5, 0.05)");
+
+      Plotly.react('graph8', data, layout, { scrollZoom: true });
+    };
+    function draw_graph9() {
+      var val_1_data = make_wave_data_nogl("ang_pidf", "rgba(128,128,128,0.2)", g1_v1_buff);
+
+      var data = [val_1_data];
+      var layout = make_wave_layout(g9_title, '秒[ms]', g9_y_title, "rgba(255, 255, 255, 0.3)");
+
+      Plotly.react('graph9', data, layout, { scrollZoom: true });
+    };
+    function draw_graph10() {
+      var val_1_data = make_wave_data_nogl("pos_pidf", "rgba(128,128,128,0.2)", g1_v1_buff);
+      var val_2_data = make_wave_data_nogl("wall_pidf", "rgba(0,0,128,0.3)", g1_v2_buff);
+
+      var data = [val_1_data, val_2_data];
+      var layout = make_wave_layout(g10_title, '秒[ms]', g10_y_title, "rgba(255, 255, 255, 0.3)");
+
+
+      Plotly.react('graph10', data, layout, { scrollZoom: true });
     };
 
-    var mqtt_client = mqtt.connect(host_, options);
-    mqtt_client.subscribe("mouse/#");
-    mqtt_client.subscribe("gamepad/#");
+    function initGraph() {
+      draw_graph1();
+      draw_graph2();
+      draw_graph3();
+      draw_graph4();
+      draw_graph5();
+      draw_graph6();
+      draw_graph7();
+      draw_graph8();
+      draw_graph9();
+      draw_graph10();
+    }
 
-    mqtt_client.on('connect', function () {
-      mqtt_client.publish('presence', 'This is uMouse graph_datas Hello mqtt');
-      console.log("MQTTで接続");
+
+    initGraph();
+
+
+    //パラメータの読み込み
+    let server_ip = "";
+    let server_port = "";
+    let message_len = 0;
+    let msg = "";
+    $.getJSON("../json/param.json", function (data) {
+      server_ip = data.SERVER_ID;
+      server_port = data.SERVER_PORT;
+      message_len = data.MESSAGE_LEN;
+    })
+
+    //soket.ioの接続
+    let s = io.connect('http://' + server_ip + ':' + server_port, { transports: ['websocket'] });
+
+    s.on("mqtt_message", function (data) {
+      //console.log(data);
+      if (data.topic != "mouse") return;
+      payload = data.payload;
+      let data_view = new DataView(payload);
+      let intList = [];
+      for (let i = 0; i < message_len; i = i + 1) {
+        intList.push(data_view.getUint8(i, true));
+      }
+      reflectData(intList);
 
     });
 
-    mqtt_client.on('message', function (topic, message, packet) {
-      var topic_array = topic.split("/");
-      var message_array = message;
-      topic = topic_array[0];
-      payload = message;
-      console.log(message);
-      if (topic == "mouse") reflectData(payload);
-    });
 
-    //受信したデータを画面に反映
     function reflectData(intList) {
-      var message_len = 400;
-      var sum = 0;
-      for (var i = 7; i < message_len; i++) sum += intList[i];
+
+      let sum = 0;
+      for (let i = 7; i < message_len; i++) sum += intList[i];
       sum = sum % 256;
       if (sum != intList[6]) {
         console.log("chksum err" + intList[6] + "  " + sum);
         return;
       }
 
-      
-      timestamp_int = (intList[11] + (intList[10] << 8) + (intList[9] << 16) + (intList[8] << 24));
-      
-      timestamp = timestamp_int/1000.0;
-      voltage = 15.1 / 5.1 * ((intList[12] << 8) + intList[13]) * 3.3 / 4096;
+      let mouse_x = parseMouseX(intList);
+      let mouse_y = parseMouseY(intList);
+      let mouse_ang = parseMouseAng(intList);
+      let mouse_v = parseMouseV(intList);
+
+
+      let target_x = parseTargetX(intList);
+      let target_y = parseTargetY(intList);
+      let target_ang = parseTargetAng(intList);
+      let target_v = parseTargetV(intList);
+
+      let voltage = parseVoltage(intList);
+      let time = parseTime(intList);
+      let V_l = parseVoltageL(intList);
+      let V_r = parseVoltageR(intList);
+
+      let lf = parseWallLF(intList);
+      let l = parseWallL(intList);
+      let r = parseWallR(intList);
+      let rf = parseWallRF(intList);
+
+      let led_r = parseLed_R(intList);
+      let led_g = parseLed_G(intList);
+      let led_b = parseLed_B(intList);
+
       setVoltage(voltage);
-      setTimestamp(timestamp);
-      
-      if(record_flag == true){
-        var start_byte_list = [16, 76, 136, 302]; 
-        var prop_list = [1.0/3000.0, 1.0/3000.0, 1.0/3000.0, 1.0/20.0];
-        var buff_list = [val1_buff, val2_buff, val3_buff, val4_buff];
-
-        for(var i=0;i<30;i++){
-          timestamp_buff.push(timestamp - 30.0/1000.0 + i/1000.0);
-          for(var j=0;j<4;j++){
-            byte_num = start_byte_list[j] + 58 - 2*i;
-            var val = intList[byte_num + 1] + intList[byte_num] * 256;
-            if (val > 32767) val = val - 65536;
-            val = val * prop_list[j];
-            buff_list[j].push(val);
-          }
-
-        }
-
-        for (var i=0;i<3;i++){
-          byte_num = 362 + 4 - 2*i;
-          var val = intList[byte_num + 1] + intList[byte_num] * 256;
-          if (val > 32767) val = val - 65536;
-          val = val * 1.0/3000.0;
-          val5_buff.push(val);
-  
-        }        
-
-        for (var i=0;i<27;i++){
-          byte_num = 196 + 52 - 2*i;
-          var val = intList[byte_num + 1] + intList[byte_num] * 256;
-          if (val > 32767) val = val - 65536;
-          val = val * 1.0/3000.0;
-          val5_buff.push(val);
-  
-        }
+      setTimestamp(time);
 
 
-
-      }
-      
+/*
+      setRobotPos(mouse_x, mouse_y, mouse_ang, mouse_v / 10.0, intList[160]);
+      setTargetPos(target_x, target_y, target_ang, target_v / 10.0, intList[160]);
+      updateDataView(time, voltage, V_l, V_r, mouse_x, mouse_y, mouse_ang, mouse_v);
+      updateWallSensorView(lf, l, r, rf);
+      if (led_r == 0 && led_g == 0 && led_b == 0) setRobotColor(0XAA0000 * 1 + 0XAA00 * 1 + 1 * 0xAA);
+      else if (led_r == 1 && led_g == 1 && led_b == 1) setRobotColor(0xFFFFFF);
+      else setRobotColor(0XAA0000 * led_r + 0XAA00 * led_g + led_b * 0xAA + 0X333333);
+*/    
     }
-*/
-    function initGraph() {
-      draw_graph1();
-      draw_graph2();
-   /*
-        $.when(
-          function(){
-            var x_ = [];
-        var y_ = [];
-        for (var i = 0; i < 3000; i++) {
-          x_.push(i);
-          y_.push(0);
-        }
-            draw_graph1();
-            draw_graph2();
-          }
-        ).done(function(){
-          let w = $(graph1).innerWidth();
-          update = {
-            width: w
-          };
-          Plotly.relayout(graph1, update);
-          Plotly.relayout(graph2, update);
-        });
-*/
 
-     
-    }
-    
-    
-
-
-
-    initGraph();
     $(document).ready(function () {
       $("#header").load("header.html");
       $("#footer").load("footer.html");
-      let w = $(window).width() * 1/1.15;
+
+      let w = $(window).width() * 1 / 1.15;
       update = {
         width: w
       };
       Plotly.relayout(graph1, update);
       Plotly.relayout(graph2, update);
-/*            
-      //サーバとのsocket_ioでの接続
-      // 接続確立時
-      s.on("connect", function () {
-        s.emit("C2S:mqtt-sub/query_mqtt_topic", {
-          value: "query"
-        });
-        console.log("con");
+      Plotly.relayout(graph3, update);
+      Plotly.relayout(graph4, update);
+      Plotly.relayout(graph5, update);
+      Plotly.relayout(graph6, update);
+      Plotly.relayout(graph7, update);
+      Plotly.relayout(graph8, update);
+      Plotly.relayout(graph9, update);
+      Plotly.relayout(graph10, update);
 
-        topics = "TEST, presence, mouse, gamepad";
-      });
-      // 接続切断時
-      s.on("disconnect", function (client) {
-        console.log("dis_con");
-      });
-
-      //mqttのメッセージをサーバーが受信時
-      s.on("mqtt_message", function (data) {
-        //console.log(data);
-        topic = data.topic;
-        payload = data.payload;
-
-        if (topic == "mouse") {
-          var data_view = new DataView(payload);
-          var intList = [];
-          for (var i = 0; i < message_len; i = i + 1) {
-            intList.push(data_view.getUint8(i, true));
-          }
-          reflectData(intList);
-        }
-
-      });
-*/
     });
 
-    $(window).resize(function(){
+    $(window).resize(function () {
       let w = $(graph1).innerWidth();
       update = {
         width: w
       };
       Plotly.relayout(graph1, update);
       Plotly.relayout(graph2, update);
+      Plotly.relayout(graph3, update);
+      Plotly.relayout(graph4, update);
+      Plotly.relayout(graph5, update);
+      Plotly.relayout(graph6, update);
+      Plotly.relayout(graph7, update);
+      Plotly.relayout(graph8, update);
+      Plotly.relayout(graph9, update);
+      Plotly.relayout(graph10, update);
     });
 
 
   </script>
 </body>
-
