@@ -53,6 +53,8 @@ function parseTargetV(intList) {
   return target_v;
 }
 
+
+
 function parseVoltage(intList) {
   return 30.0 / 20.0 * ((intList[20] << 8) + intList[21]) * 3.2 / 4095;
 }
@@ -62,19 +64,27 @@ function parseTime(intList) {
 }
 
 function parseWallL(intList) {
-  return intList[62 + 1] + (intList[62] << 8);
+  int_val = intList[62 + 1] + (intList[62] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  return int_val;
 }
 
 function parseWallR(intList) {
-  return intList[60 + 1] + (intList[60] << 8);
+  int_val = intList[60 + 1] + (intList[60] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;  
+  return int_val;
 }
 
 function parseWallRF(intList) {
-  return intList[64 + 1] + (intList[64] << 8);
+  let int_val = intList[64 + 1] + (intList[64] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;  
+  return int_val;
 }
 
 function parseWallLF(intList) {
-  return intList[58 + 1] + (intList[58] << 8);
+  let int_val = intList[58 + 1] + (intList[58] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;  
+  return int_val;
 }
 
 function parseVoltageR(intList){
@@ -135,12 +145,39 @@ function parseTargetAngV(intList){
   return target_ang_v;
 };
 
-function parseTargetAngV_pos(intList){
+function parseTargetAngV_ctrl(intList){
   let int_val = intList[118 + 1] + (intList[118] << 8);
   if (int_val > 32767) int_val = int_val - 65536;
-
-  let target_ang_v_pos = int_val / 10;
-  return target_ang_v_pos;
+  let target_ang_v_ctrl = int_val / 10;
+  return target_ang_v_ctrl;
 };
 
+function parseDutyR(intList){
+  let int_val = intList[26 + 1] + (intList[26] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let dutyR = int_val / 10000;
+  return dutyR;
 
+}
+
+function parseDutyL(intList){
+  let int_val = intList[24 + 1] + (intList[24] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let dutyL = int_val / 10000;
+  return dutyL;
+
+}
+
+function parseVPidf(intList){
+  let int_val = intList[130 + 1] + (intList[130] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let vpidf = int_val / 10000;
+  return vpidf;
+}
+
+function parseAngVPidf(intList){
+  let int_val = intList[132 + 1] + (intList[132] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let angVPidf = int_val / 10000;
+  return angVPidf;
+}

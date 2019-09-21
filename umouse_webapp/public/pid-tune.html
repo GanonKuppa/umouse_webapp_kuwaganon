@@ -25,11 +25,14 @@
 <body>
   <div id="header"></div>
 
-  <main>
-    <div class="row" style="margin : 15px">
+  <main>    
+    
+    <div class="row" style="margin : 15px" position="absolute">
       <div class=" col-sm-12">
         <input type="button" class="btn btn-danger btn-lg" value="Start" onclick="recordStart()">
         <input type="button" class="btn btn-success btn-lg" value="Stop" onclick="recordEnd()">
+        <input type="button" class="btn btn-secondary btn-lg" value="Clear" onclick="initGraph()">
+
         <span><b>　　timestamp</b></span>
         <span id="timestamp_val">xxxxxx</span>
         <span>[秒]　　</span>
@@ -39,18 +42,19 @@
       </div>
     </div>
 
-    <div class="row" style="margin : 15px">
-      <div class=" col-sm-12">
-        <div id="graph1" style="margin : 15px"></div>
-        <div id="graph2" style="margin : 15px"></div>
-        <div id="graph3" style="margin : 15px"></div>
-        <div id="graph4" style="margin : 15px"></div>
-        <div id="graph5" style="margin : 15px"></div>
-        <div id="graph6" style="margin : 15px"></div>
-        <div id="graph7" style="margin : 15px"></div>
-        <div id="graph8" style="margin : 15px"></div>
-        <div id="graph9" style="margin : 15px"></div>
-        <div id="graph10" style="margin : 15px"></div>
+    <div class="row" style="margin : 30px">
+      <div id="fadeLayer"></div>
+      <div class=" col-lg-12">
+        <div id="graph1" style="margin : 30px"></div>
+        <div id="graph2" style="margin : 30px"></div>
+        <div id="graph3" style="margin : 30px"></div>
+        <div id="graph4" style="margin : 30px"></div>
+        <div id="graph5" style="margin : 30px"></div>
+        <div id="graph6" style="margin : 30px"></div>
+        <div id="graph7" style="margin : 30px"></div>
+        <div id="graph8" style="margin : 30px"></div>
+        <div id="graph9" style="margin : 30px"></div>
+        <div id="graph10" style="margin : 30px"></div>
       </div>
     </div>
 
@@ -171,9 +175,43 @@
       }
     }
 
-    function recordStart() {
-      initGraph();
-      record_flag = true;
+    function buffZero(){
+      timestamp_buff = [0];
+      g1_v1_buff = [0];
+      g1_v2_buff = [0];
+      g1_v3_buff = [0];
+      g1_v4_buff = [0];
+      g2_v1_buff = [0];
+      g2_v2_buff = [0];
+      g2_v3_buff = [0];
+      g2_v4_buff = [0];
+      g3_v1_buff = [0];
+      g3_v2_buff = [0];
+      g3_v3_buff = [0];
+      g3_v4_buff = [0];
+      g4_v1_buff = [0];
+      g4_v2_buff = [0];
+      g4_v3_buff = [0];
+      g4_v4_buff = [0];
+      g5_v1_buff = [0];
+      g5_v2_buff = [0];
+      g5_v3_buff = [0];
+      g5_v4_buff = [0];
+      g6_v1_buff = [0];
+      g6_v2_buff = [0];
+      g7_v1_buff = [0];
+      g7_v2_buff = [0];
+      g7_v3_buff = [0];
+      g8_v1_buff = [0];
+      g8_v2_buff = [0];
+      g8_v3_buff = [0];
+      g9_v1_buff = [0];
+      g10_v1_buff = [0];
+      g10_v2_buff = [0];
+
+    }
+
+    function buffClear(){
       timestamp_buff = [];
       g1_v1_buff = [];
       g1_v2_buff = [];
@@ -207,20 +245,22 @@
       g10_v1_buff = [];
       g10_v2_buff = [];
 
+    }
+
+
+    function recordStart() {
+      buffClear()
+      record_flag = true;
+      var target = document.getElementById("fadeLayer");
+      target.style.visibility = "visible";
+
     };
 
     function recordEnd() {
       record_flag = false;
-      draw_graph1();
-      draw_graph2();
-      draw_graph3();
-      draw_graph4();
-      draw_graph5();
-      draw_graph6();
-      draw_graph7();
-      draw_graph8();
-      draw_graph9();
-      draw_graph10();
+      drawGraph();
+      var target = document.getElementById("fadeLayer");
+      target.style.visibility = "hidden";
     };
 
     function setVoltage(vol) {
@@ -237,7 +277,7 @@
         y: graph_buff,
         type: 'scattergl',
         name: graph_name,
-        mode: 'markers',
+        mode: 'lines+markers',
         marker: {
           color: graph_color,
           size: 5
@@ -250,7 +290,7 @@
         x: timestamp_buff,
         y: graph_buff,
         name: graph_name,
-        mode: 'markers',
+        mode: 'lines+markers',
         marker: {
           color: graph_color,
           size: 5
@@ -297,111 +337,111 @@
 
 
     function draw_graph1() {
-      var val_1_data = make_wave_data("v_enc", "rgba(128,128,128,0.2)", g1_v1_buff);
-      var val_2_data = make_wave_data("v_comp", "rgba(0,0,128,0.3)", g1_v2_buff);
-      var val_3_data = make_wave_data("v_acc", "rgba(128,0,128,0.3)", g1_v3_buff);
-      var val_4_data = make_wave_data("v_traj_tg", "rgba(128,128,0,0.3)", g1_v4_buff)
+      var val_1_data = make_wave_data("v_enc", "rgba(128,128,128,0.5)", g1_v1_buff);
+      var val_2_data = make_wave_data("v_comp", "rgba(0,0,128,0.5)", g1_v2_buff);
+      var val_3_data = make_wave_data("v_acc", "rgba(128,0,128,0.5)", g1_v3_buff);
+      var val_4_data = make_wave_data("v_traj_tg", "rgba(128,128,0,0.5)", g1_v4_buff)
 
       var data = [val_1_data, val_2_data, val_3_data, val_4_data];
-      var layout = make_wave_layout(g1_title, '秒[ms]', g1_y_title, "rgba(5, 255, 5, 0.05)");
+      var layout = make_wave_layout(g1_title, '秒[s]', g1_y_title, "rgba(5, 255, 5, 0.05)");
 
       Plotly.react('graph1', data, layout, { scrollZoom: true });
 
     }
 
     function draw_graph2() {
-      var val_1_data = make_wave_data("ay_traj_tg", "rgba(128,128,128,0.2)", g2_v1_buff);
-      var val_2_data = make_wave_data("ay_sen", "rgba(0,0,128,0.3)", g2_v2_buff);
-      var val_3_data = make_wave_data("ax_traj_tg", "rgba(128,0,128,0.3)", g2_v3_buff);
-      var val_4_data = make_wave_data("ax_sen", "rgba(128,128,0,0.3)", g2_v4_buff)
+      var val_1_data = make_wave_data("ay_traj_tg", "rgba(128,128,128,0.5)", g2_v1_buff);
+      var val_2_data = make_wave_data("ay_sen", "rgba(0,0,128,0.5)", g2_v2_buff);
+      var val_3_data = make_wave_data("ax_traj_tg", "rgba(128,0,128,0.5)", g2_v3_buff);
+      var val_4_data = make_wave_data("ax_sen", "rgba(128,128,0,0.5)", g2_v4_buff)
 
       var data = [val_1_data, val_2_data, val_3_data, val_4_data];
-      var layout = make_wave_layout(g2_title, '秒[ms]', g2_y_title, "rgba(5, 255, 5, 0.05)");
+      var layout = make_wave_layout(g2_title, '秒[s]', g2_y_title, "rgba(5, 255, 5, 0.05)");
 
       Plotly.react('graph2', data, layout, { scrollZoom: true });
     }
     function draw_graph3() {
-      var val_1_data = make_wave_data("ang_v_enc", "rgba(128,128,128,0.2)", g3_v1_buff);
-      var val_2_data = make_wave_data("ang_v_gyro", "rgba(0,0,128,0.3)", g3_v2_buff);
-      var val_3_data = make_wave_data("ang_v_tg", "rgba(128,0,128,0.3)", g3_v3_buff);
-      var val_4_data = make_wave_data("ang_v_traj_tg", "rgba(128,128,0,0.3)", g3_v4_buff)
+      var val_1_data = make_wave_data("ang_v_enc", "rgba(128,128,128,0.5)", g3_v1_buff);
+      var val_2_data = make_wave_data("ang_v_gyro", "rgba(0,0,128,0.5)", g3_v2_buff);
+      var val_3_data = make_wave_data("ang_v_tg", "rgba(128,0,128,0.5)", g3_v3_buff);
+      var val_4_data = make_wave_data("ang_v_traj_tg", "rgba(128,128,0,0.5)", g3_v4_buff)
 
       var data = [val_1_data, val_2_data, val_3_data, val_4_data];
-      var layout = make_wave_layout(g3_title, '秒[ms]', g3_y_title, "rgba(5, 5, 255, 0.03)");
+      var layout = make_wave_layout(g3_title, '秒[s]', g3_y_title, "rgba(5, 5, 255, 0.03)");
 
       Plotly.react('graph3', data, layout, { scrollZoom: true });
     };
     function draw_graph4() {
-      var val_1_data = make_wave_data("ang_traj_tg", "rgba(128,128,128,0.2)", g4_v1_buff);
-      var val_2_data = make_wave_data("ang_tg", "rgba(0,0,128,0.3)", g4_v2_buff);
-      var val_3_data = make_wave_data("ang_int_gyro", "rgba(128,0,128,0.3)", g4_v3_buff);
-      var val_4_data = make_wave_data("ang_slip", "rgba(128,128,0,0.3)", g4_v4_buff)
+      var val_1_data = make_wave_data("ang_traj_tg", "rgba(128,128,128,0.5)", g4_v1_buff);
+      var val_2_data = make_wave_data("ang_tg", "rgba(0,0,128,0.5)", g4_v2_buff);
+      var val_3_data = make_wave_data("ang_int_gyro", "rgba(128,0,128,0.5)", g4_v3_buff);
+      var val_4_data = make_wave_data("ang_slip", "rgba(128,128,0,0.5)", g4_v4_buff)
 
       var data = [val_1_data, val_2_data, val_3_data, val_4_data];
-      var layout = make_wave_layout(g4_title, '秒[ms]', g4_y_title, "rgba(5, 5, 255, 0.03)");
+      var layout = make_wave_layout(g4_title, '秒[s]', g4_y_title, "rgba(5, 5, 255, 0.03)");
 
       Plotly.react('graph4', data, layout, { scrollZoom: true });
     };
     function draw_graph5() {
-      var val_1_data = make_wave_data("al_sen", "rgba(128,128,128,0.2)", g5_v1_buff);
-      var val_2_data = make_wave_data("ar_sen", "rgba(0,0,128,0.3)", g5_v2_buff);
-      var val_3_data = make_wave_data("l_sen", "rgba(128,0,128,0.3)", g5_v3_buff);
-      var val_4_data = make_wave_data("r_sen", "rgba(128,128,0,0.3)", g5_v4_buff)
+      var val_1_data = make_wave_data("al_sen", "rgba(128,128,128,0.5)", g5_v1_buff);
+      var val_2_data = make_wave_data("ar_sen", "rgba(0,0,128,0.5)", g5_v2_buff);
+      var val_3_data = make_wave_data("l_sen", "rgba(128,0,128,0.5)", g5_v3_buff);
+      var val_4_data = make_wave_data("r_sen", "rgba(128,128,0,0.5)", g5_v4_buff)
 
       var data = [val_1_data, val_2_data, val_3_data, val_4_data];
-      var layout = make_wave_layout(g5_title, '秒[ms]', g5_y_title, "rgba(255, 255, 255, 0.3)");
+      var layout = make_wave_layout(g5_title, '秒[s]', g5_y_title, "rgba(255, 255, 255, 0.3)");
 
       Plotly.react('graph5', data, layout, { scrollZoom: true });
     };
     function draw_graph6() {
-      var val_1_data = make_wave_data("dutyR", "rgba(128,128,128,0.2)", g6_v1_buff);
-      var val_2_data = make_wave_data("dutyL", "rgba(0,0,128,0.3)", g6_v2_buff);
+      var val_1_data = make_wave_data("dutyR", "rgba(128,0,128,0.5)", g6_v1_buff);
+      var val_2_data = make_wave_data("dutyL", "rgba(0,0,128,0.5)", g6_v2_buff);
 
       var data = [val_1_data, val_2_data];
-      var layout = make_wave_layout(g6_title, '秒[ms]', g6_y_title, "rgba(255, 255, 5, 0.05)");
+      var layout = make_wave_layout(g6_title, '秒[s]', g6_y_title, "rgba(255, 255, 5, 0.05)");
 
       Plotly.react('graph6', data, layout, { scrollZoom: true });
     };
     function draw_graph7() {
-      var val_1_data = make_wave_data("v_pidf", "rgba(128,128,128,0.2)", g7_v1_buff);
-      var val_2_data = make_wave_data("v_backemf_FF", "rgba(0,0,128,0.3)", g7_v2_buff);
-      var val_3_data = make_wave_data("v_trans_acc_FF", "rgba(128,0,128,0.3)", g7_v3_buff);
+      var val_1_data = make_wave_data("v_pidf", "rgba(128,128,128,0.5)", g7_v1_buff);
+      var val_2_data = make_wave_data("v_backemf_FF", "rgba(0,0,128,0.5)", g7_v2_buff);
+      var val_3_data = make_wave_data("v_trans_acc_FF", "rgba(128,0,128,0.5)", g7_v3_buff);
 
       var data = [val_1_data, val_2_data, val_3_data];
-      var layout = make_wave_layout(g7_title, '秒[ms]', g7_y_title, "rgba(255, 255, 5, 0.05)");
+      var layout = make_wave_layout(g7_title, '秒[s]', g7_y_title, "rgba(255, 255, 5, 0.05)");
 
       Plotly.react('graph7', data, layout, { scrollZoom: true });
     };
     function draw_graph8() {
-      var val_1_data = make_wave_data("ang_v_pidf", "rgba(128,128,128,0.2)", g1_v1_buff);
-      var val_2_data = make_wave_data("rot_v_backemf_FF", "rgba(0,0,128,0.3)", g1_v2_buff);
-      var val_3_data = make_wave_data("rot_v_acc_FF", "rgba(128,0,128,0.3)", g1_v3_buff);
+      var val_1_data = make_wave_data("ang_v_pidf", "rgba(128,128,128,0.5)", g8_v1_buff);
+      var val_2_data = make_wave_data("rot_v_backemf_FF", "rgba(0,0,128,0.5)", g8_v2_buff);
+      var val_3_data = make_wave_data("rot_v_acc_FF", "rgba(128,0,128,0.5)", g8_v3_buff);
 
       var data = [val_1_data, val_2_data, val_3_data];
-      var layout = make_wave_layout(g8_title, '秒[ms]', g8_y_title, "rgba(255, 255, 5, 0.05)");
+      var layout = make_wave_layout(g8_title, '秒[s]', g8_y_title, "rgba(255, 255, 5, 0.05)");
 
       Plotly.react('graph8', data, layout, { scrollZoom: true });
     };
     function draw_graph9() {
-      var val_1_data = make_wave_data_nogl("ang_pidf", "rgba(128,128,128,0.2)", g1_v1_buff);
+      var val_1_data = make_wave_data_nogl("ang_pidf", "rgba(128,128,128,0.5)", g9_v1_buff);
 
       var data = [val_1_data];
-      var layout = make_wave_layout(g9_title, '秒[ms]', g9_y_title, "rgba(255, 255, 255, 0.3)");
+      var layout = make_wave_layout(g9_title, '秒[s]', g9_y_title, "rgba(255, 255, 255, 0.3)");
 
       Plotly.react('graph9', data, layout, { scrollZoom: true });
     };
     function draw_graph10() {
-      var val_1_data = make_wave_data_nogl("pos_pidf", "rgba(128,128,128,0.2)", g1_v1_buff);
-      var val_2_data = make_wave_data_nogl("wall_pidf", "rgba(0,0,128,0.3)", g1_v2_buff);
+      var val_1_data = make_wave_data_nogl("pos_pidf", "rgba(128,128,128,0.5)", g10_v1_buff);
+      var val_2_data = make_wave_data_nogl("wall_pidf", "rgba(0,0,128,0.5)", g10_v2_buff);
 
       var data = [val_1_data, val_2_data];
-      var layout = make_wave_layout(g10_title, '秒[ms]', g10_y_title, "rgba(255, 255, 255, 0.3)");
+      var layout = make_wave_layout(g10_title, '秒[s]', g10_y_title, "rgba(255, 255, 255, 0.3)");
 
 
       Plotly.react('graph10', data, layout, { scrollZoom: true });
     };
 
-    function initGraph() {
+    function drawGraph(){
       draw_graph1();
       draw_graph2();
       draw_graph3();
@@ -415,8 +455,10 @@
     }
 
 
-    initGraph();
-
+    function initGraph() {
+      buffZero();
+      drawGraph();
+    }
 
     //パラメータの読み込み
     let server_ip = "";
@@ -461,11 +503,14 @@
       let mouse_ang = parseMouseAng(intList);
       let mouse_v = parseMouseV(intList);
 
-
       let target_x = parseTargetX(intList);
       let target_y = parseTargetY(intList);
       let target_ang = parseTargetAng(intList);
       let target_v = parseTargetV(intList);
+
+      let mouse_ang_v =  parseEstiAngV(intList);
+      let target_ang_v = parseTargetAngV(intList);
+      let target_ang_v_ctrl = parseTargetAngV_ctrl(intList);
 
       let voltage = parseVoltage(intList);
       let time = parseTime(intList);
@@ -480,6 +525,57 @@
       let led_r = parseLed_R(intList);
       let led_g = parseLed_G(intList);
       let led_b = parseLed_B(intList);
+
+      let dutyR = parseDutyR(intList);
+      let dutyL = parseDutyL(intList);
+
+      let v_pidf = parseVPidf(intList);
+      let ang_v_pidf = parseAngVPidf(intList);
+
+      if(record_flag == true){
+        timestamp_buff.push(time); //timestamp
+        g1_v1_buff.push(mouse_v); // v_enc
+        g1_v2_buff.push(0); // v_comp
+        g1_v3_buff.push(0); // v_acc
+        g1_v4_buff.push(target_v); // v_traj_tg
+
+        g2_v1_buff.push(0); // ay_traj_tg
+        g2_v2_buff.push(0); // ay_sen
+        g2_v3_buff.push(0); // ax_traj_tg
+        g2_v4_buff.push(0); // ax_sen
+
+        g3_v1_buff.push(0); // ang_v_enc
+        g3_v2_buff.push(mouse_ang_v); // ang_v_gyro
+        g3_v3_buff.push(target_ang_v); // ang_v_tg
+        g3_v4_buff.push(target_ang_v_ctrl); // ang_v_traj_tg
+
+        g4_v1_buff.push(target_ang); // ang_traj_tg
+        g4_v2_buff.push(0); // ang_tg
+        g4_v3_buff.push(mouse_ang); // ang_int_gyro
+        g4_v4_buff.push(0); // ang_slip        
+
+        g5_v1_buff.push(lf); // al_sen
+        g5_v2_buff.push(rf); // ar_sen
+        g5_v3_buff.push(l); // l_sen
+        g5_v4_buff.push(r); // r_sen
+        
+        g6_v1_buff.push(dutyR);
+        g6_v2_buff.push(dutyL);
+
+        g7_v1_buff.push(v_pidf); // v_pidf
+        g7_v2_buff.push(0); // v_backemf_FF
+        g7_v3_buff.push(0); // v_trans_acc_FF
+
+        g8_v1_buff.push(ang_v_pidf); // ang_v_pidf
+        g8_v2_buff.push(0); // rot_v_backemf_FF
+        g8_v3_buff.push(0); // rot_v_acc_FF
+        
+        g9_v1_buff.push(0); // ang_pidf
+
+        g10_v1_buff.push(0); // pos_pidf
+        g10_v2_buff.push(0); // wall_pidf
+
+      }
 
       setVoltage(voltage);
       setTimestamp(time);
@@ -499,6 +595,7 @@
     $(document).ready(function () {
       $("#header").load("header.html");
       $("#footer").load("footer.html");
+      initGraph();
 
       let w = $(window).width() * 1 / 1.15;
       update = {
