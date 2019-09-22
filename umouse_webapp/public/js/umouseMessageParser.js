@@ -158,7 +158,7 @@ function parseDutyR(intList){
   let dutyR = int_val / 10000;
   return dutyR;
 
-}
+};
 
 function parseDutyL(intList){
   let int_val = intList[24 + 1] + (intList[24] << 8);
@@ -166,18 +166,144 @@ function parseDutyL(intList){
   let dutyL = int_val / 10000;
   return dutyL;
 
-}
+};
 
 function parseVPidf(intList){
   let int_val = intList[130 + 1] + (intList[130] << 8);
   if (int_val > 32767) int_val = int_val - 65536;
   let vpidf = int_val / 10000;
   return vpidf;
-}
+};
 
 function parseAngVPidf(intList){
   let int_val = intList[132 + 1] + (intList[132] << 8);
   if (int_val > 32767) int_val = int_val - 65536;
   let angVPidf = int_val / 10000;
   return angVPidf;
-}
+};
+
+function parseVComp(intList){
+  let int_val = intList[108 + 1] + (intList[108] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let ret_val = int_val / 10000;
+  return ret_val;
+};
+
+function parseVAcc(intList){
+  let int_val = intList[112 + 1] + (intList[112] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let ret_val = int_val / 10000;
+  return ret_val;
+};
+
+function parseTargetAy(intList){
+  let int_val = intList[122 + 1] + (intList[122] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let ret_val = int_val / 1000;
+  return ret_val;
+};
+
+function parseTargetAx(intList){
+  let int_val = intList[120 + 1] + (intList[120] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let ret_val = int_val / 1000;
+  return ret_val;
+};
+
+function parseAy(intList){
+  let int_val = intList[126 + 1] + (intList[126] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let ret_val = int_val / 1000;
+  return ret_val;
+};
+
+function parseAx(intList){
+  let int_val = intList[124 + 1] + (intList[124] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let ret_val = int_val / 1000;
+  return ret_val;
+};
+
+function parseAngVEnc(intList){
+  let int_val = intList[150 + 1] + (intList[150] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let ret_val = int_val / 10;
+  return ret_val;
+};
+
+function parseAngSlip(intList){
+  let int_val = intList[152 + 1] + (intList[152] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let ret_val = int_val / 100;
+  return ret_val;
+};
+
+function parseTargetAng_ctrl(intList){
+  let int_val = intList[128 + 1] + (intList[128] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let ret_val = int_val / 100;
+  return ret_val;
+};
+
+function parseTransBackEmfFF(intList){
+  let int_val = intList[134 + 1] + (intList[134] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let ret_val = int_val / 10000;
+  return ret_val;
+};
+
+function parseTransAccFF(intList){
+  let int_val = intList[136 + 1] + (intList[136] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let ret_val = int_val / 10000;
+  return ret_val;
+};
+
+function parseTransFricFF(intList){
+  let int_val = intList[138 + 1] + (intList[138] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let ret_val = int_val / 10000;
+  return ret_val;
+};
+
+function parseRotVBackEmfFF(intList){
+  let int_val = intList[140 + 1] + (intList[140] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let ret_val = int_val / 10000;
+  return ret_val;
+};
+
+function parseRotVAccFF(intList){
+  let int_val = intList[142 + 1] + (intList[142] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let ret_val = int_val / 10000;
+  return ret_val;
+};
+
+function parseRotVFricFF(intList){
+  let int_val = intList[144 + 1] + (intList[144] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let ret_val = int_val / 10000;
+  return ret_val;
+};
+
+function parseAngPidf(intList){
+  let int_val = intList[154 + 1] + (intList[154] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let ret_val = int_val / 10;
+  return ret_val;
+};
+
+function parsePosPidf(intList){
+  let int_val = intList[148 + 1] + (intList[148] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let ret_val = int_val / 100;
+  return ret_val;
+};
+
+function parseWallPidf(intList){
+  let int_val = intList[146 + 1] + (intList[146] << 8);
+  if (int_val > 32767) int_val = int_val - 65536;
+  let ret_val = int_val / 100;
+  return ret_val;
+};

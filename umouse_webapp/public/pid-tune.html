@@ -115,8 +115,9 @@
     var g7_title = "v_pidf出力, v_逆起電力FF, v_加速FF";
     var g7_y_title = "duty[%]";
     var g7_v1_buff = [0]; // v_pidf
-    var g7_v2_buff = [0]; // v_backemf_FF
+    var g7_v2_buff = [0]; // v_trans_backemf_FF
     var g7_v3_buff = [0]; // v_trans_acc_FF
+    var g7_v4_buff = [0]; // v_trans_fric_FF
 
     // graph8
     var g8_title = "ang_v_pidf出力 ang_v_逆起電力FF, ang_v_角加速FF";
@@ -124,6 +125,8 @@
     var g8_v1_buff = [0]; // ang_v_pidf
     var g8_v2_buff = [0]; // rot_v_backemf_FF
     var g8_v3_buff = [0]; // rot_v_acc_FF
+    var g8_v4_buff = [0]; // rot_v_fric_FF
+
 
     // graph9
     var g9_title = "ang_pidf出力";
@@ -166,9 +169,11 @@
         g7_v1_buff.push(0);
         g7_v2_buff.push(0);
         g7_v3_buff.push(0);
+        g7_v4_buff.push(0);
         g8_v1_buff.push(0);
         g8_v2_buff.push(0);
         g8_v3_buff.push(0);
+        g8_v4_buff.push(0);
         g9_v1_buff.push(0);
         g10_v1_buff.push(0);
         g10_v2_buff.push(0);
@@ -202,8 +207,10 @@
       g7_v1_buff = [0];
       g7_v2_buff = [0];
       g7_v3_buff = [0];
+      g7_v4_buff = [0];
       g8_v1_buff = [0];
       g8_v2_buff = [0];
+      g8_v3_buff = [0];
       g8_v3_buff = [0];
       g9_v1_buff = [0];
       g10_v1_buff = [0];
@@ -238,9 +245,11 @@
       g7_v1_buff = [];
       g7_v2_buff = [];
       g7_v3_buff = [];
+      g8_v4_buff = [];
       g8_v1_buff = [];
       g8_v2_buff = [];
       g8_v3_buff = [];
+      g8_v4_buff = [];
       g9_v1_buff = [];
       g10_v1_buff = [];
       g10_v2_buff = [];
@@ -406,8 +415,9 @@
       var val_1_data = make_wave_data("v_pidf", "rgba(128,128,128,0.5)", g7_v1_buff);
       var val_2_data = make_wave_data("v_backemf_FF", "rgba(0,0,128,0.5)", g7_v2_buff);
       var val_3_data = make_wave_data("v_trans_acc_FF", "rgba(128,0,128,0.5)", g7_v3_buff);
+      var val_4_data = make_wave_data("v_trans_fric_FF", "rgba(128,0,0,0.5)", g7_v4_buff);
 
-      var data = [val_1_data, val_2_data, val_3_data];
+      var data = [val_1_data, val_2_data, val_3_data, val_4_data];
       var layout = make_wave_layout(g7_title, '秒[s]', g7_y_title, "rgba(255, 255, 5, 0.05)");
 
       Plotly.react('graph7', data, layout, { scrollZoom: true });
@@ -416,8 +426,9 @@
       var val_1_data = make_wave_data("ang_v_pidf", "rgba(128,128,128,0.5)", g8_v1_buff);
       var val_2_data = make_wave_data("rot_v_backemf_FF", "rgba(0,0,128,0.5)", g8_v2_buff);
       var val_3_data = make_wave_data("rot_v_acc_FF", "rgba(128,0,128,0.5)", g8_v3_buff);
+      var val_4_data = make_wave_data("rot_v_fric_FF", "rgba(128,0,0,0.5)", g8_v4_buff);
 
-      var data = [val_1_data, val_2_data, val_3_data];
+      var data = [val_1_data, val_2_data, val_3_data, val_4_data];
       var layout = make_wave_layout(g8_title, '秒[s]', g8_y_title, "rgba(255, 255, 5, 0.05)");
 
       Plotly.react('graph8', data, layout, { scrollZoom: true });
@@ -497,83 +508,111 @@
         console.log("chksum err" + intList[6] + "  " + sum);
         return;
       }
+      
 
-      let mouse_x = parseMouseX(intList);
-      let mouse_y = parseMouseY(intList);
-      let mouse_ang = parseMouseAng(intList);
-      let mouse_v = parseMouseV(intList);
-
-      let target_x = parseTargetX(intList);
-      let target_y = parseTargetY(intList);
-      let target_ang = parseTargetAng(intList);
-      let target_v = parseTargetV(intList);
-
-      let mouse_ang_v =  parseEstiAngV(intList);
-      let target_ang_v = parseTargetAngV(intList);
-      let target_ang_v_ctrl = parseTargetAngV_ctrl(intList);
-
+      // Voltage timestamp
       let voltage = parseVoltage(intList);
       let time = parseTime(intList);
-      let V_l = parseVoltageL(intList);
-      let V_r = parseVoltageR(intList);
 
+      // graph1
+      let v_enc = parseMouseV(intList);
+      let v_comp = parseVComp(intList); //o
+      let v_acc = parseVAcc(intList); //o
+      let v_traj_tg = parseTargetV(intList);
+
+      // graph2
+      let ay_tarj_tg = parseTargetAy(intList);  //o
+      let ay_sen = parseAy(intList); //o
+      let ax_traj_tg = parseTargetAx(intList); //o
+      let ax_sen = parseTargetAx(intList); //o
+
+      // graph3
+      let ang_v_enc = parseAngVEnc(intList); //o
+      let ang_v_gyro = parseEstiAngV(intList);
+      let ang_v_tg = parseTargetAngV_ctrl(intList);
+      let ang_v_traj_tg = parseTargetAngV(intList);
+      
+      // graph4
+      let ang_traj_tg = parseTargetAng(intList);
+      let ang_tg = parseTargetAng_ctrl(intList);//o
+      let ang_int_gyro = parseMouseAng(intList);
+      let ang_slip = parseAngSlip(intList); //o
+
+      // graph5
       let lf = parseWallLF(intList);
       let l = parseWallL(intList);
       let r = parseWallR(intList);
       let rf = parseWallRF(intList);
 
-      let led_r = parseLed_R(intList);
-      let led_g = parseLed_G(intList);
-      let led_b = parseLed_B(intList);
-
+      // graph6
       let dutyR = parseDutyR(intList);
       let dutyL = parseDutyL(intList);
 
+      // graph7
       let v_pidf = parseVPidf(intList);
+      let v_trans_backemf_FF = parseTransBackEmfFF(intList); //o
+      let v_trans_acc_FF = parseTransAccFF(intList); //o
+      let v_trans_fric_FF = parseTransFricFF(intList); //o
+
+      // graph8
       let ang_v_pidf = parseAngVPidf(intList);
+      let rot_v_backemf_FF = parseRotVBackEmfFF(intList); //o
+      let rot_v_acc_FF = parseRotVAccFF(intList); //o
+      let rot_v_fric_FF = parseRotVFricFF(intList); //o
+
+      // graph9
+      let ang_pidf = parseAngPidf(intList); //o
+      
+      // graph10
+      let pos_pidf = parsePosPidf(intList); //o
+      let wall_pidf = parseWallPidf(intList); //o
+
+
 
       if(record_flag == true){
         timestamp_buff.push(time); //timestamp
-        g1_v1_buff.push(mouse_v); // v_enc
-        g1_v2_buff.push(0); // v_comp
-        g1_v3_buff.push(0); // v_acc
-        g1_v4_buff.push(target_v); // v_traj_tg
+        g1_v1_buff.push(v_enc); // v_enc
+        g1_v2_buff.push(v_comp); // v_comp
+        g1_v3_buff.push(v_acc); // v_acc
+        g1_v4_buff.push(v_traj_tg); // v_traj_tg
 
-        g2_v1_buff.push(0); // ay_traj_tg
-        g2_v2_buff.push(0); // ay_sen
-        g2_v3_buff.push(0); // ax_traj_tg
-        g2_v4_buff.push(0); // ax_sen
+        g2_v1_buff.push(ay_tarj_tg); // ay_traj_tg
+        g2_v2_buff.push(ax_sen); // ay_sen
+        g2_v3_buff.push(ax_traj_tg); // ax_traj_tg
+        g2_v4_buff.push(ax_sen); // ax_sen
 
-        g3_v1_buff.push(0); // ang_v_enc
-        g3_v2_buff.push(mouse_ang_v); // ang_v_gyro
-        g3_v3_buff.push(target_ang_v); // ang_v_tg
-        g3_v4_buff.push(target_ang_v_ctrl); // ang_v_traj_tg
+        g3_v1_buff.push(ang_v_enc); // ang_v_enc
+        g3_v2_buff.push(ang_v_gyro); // ang_v_gyro
+        g3_v3_buff.push(ang_v_tg); // ang_v_tg
+        g3_v4_buff.push(ang_v_traj_tg); // ang_v_traj_tg
 
-        g4_v1_buff.push(target_ang); // ang_traj_tg
-        g4_v2_buff.push(0); // ang_tg
-        g4_v3_buff.push(mouse_ang); // ang_int_gyro
-        g4_v4_buff.push(0); // ang_slip        
+        g4_v1_buff.push(ang_traj_tg); // ang_traj_tg
+        g4_v2_buff.push(ang_tg); // ang_tg
+        g4_v3_buff.push(ang_int_gyro); // ang_int_gyro
+        g4_v4_buff.push(ang_slip); // ang_slip        
 
         g5_v1_buff.push(lf); // al_sen
         g5_v2_buff.push(rf); // ar_sen
         g5_v3_buff.push(l); // l_sen
         g5_v4_buff.push(r); // r_sen
         
-        g6_v1_buff.push(dutyR);
-        g6_v2_buff.push(dutyL);
+        g6_v1_buff.push(dutyR); // dutyR
+        g6_v2_buff.push(dutyL); // dutyL
 
         g7_v1_buff.push(v_pidf); // v_pidf
-        g7_v2_buff.push(0); // v_backemf_FF
-        g7_v3_buff.push(0); // v_trans_acc_FF
+        g7_v2_buff.push(v_trans_backemf_FF); // v_trans_backemf_FF
+        g7_v3_buff.push(v_trans_acc_FF); // v_trans_acc_FF
+        g7_v4_buff.push(v_trans_fric_FF); // v_trans_fric_FF
 
         g8_v1_buff.push(ang_v_pidf); // ang_v_pidf
-        g8_v2_buff.push(0); // rot_v_backemf_FF
-        g8_v3_buff.push(0); // rot_v_acc_FF
-        
-        g9_v1_buff.push(0); // ang_pidf
+        g8_v2_buff.push(rot_v_backemf_FF); // rot_v_backemf_FF
+        g8_v3_buff.push(rot_v_acc_FF); // rot_v_acc_FF
+        g8_v4_buff.push(rot_v_fric_FF); // rot_v_fric_FF
 
-        g10_v1_buff.push(0); // pos_pidf
-        g10_v2_buff.push(0); // wall_pidf
+        g9_v1_buff.push(ang_pidf); // ang_pidf
+
+        g10_v1_buff.push(pos_pidf); // pos_pidf
+        g10_v2_buff.push(wall_pidf); // wall_pidf
 
       }
 
