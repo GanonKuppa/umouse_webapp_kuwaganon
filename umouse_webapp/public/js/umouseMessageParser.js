@@ -53,8 +53,6 @@ function parseTargetV(intList) {
   return target_v;
 }
 
-
-
 function parseVoltage(intList) {
   return 30.0 / 20.0 * ((intList[20] << 8) + intList[21]) * 3.2 / 4095;
 }
@@ -118,7 +116,6 @@ function parseLed_B(intList){
   let int_val = intList[70 + 1] + (intList[70] << 8);
   return int_val;
 };
-
 
 function parseTargetV_pos(intList){
   let int_val = intList[112 + 1] + (intList[112] << 8);
