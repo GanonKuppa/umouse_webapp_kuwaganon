@@ -103,8 +103,13 @@ def create_mqtt_client():
 def write_csv(contents):
     dt_now = datetime.datetime.now()
     file_name =  "./saved_data/" + dt_now.strftime('%Y%m%d_%H%M%S_param') + ".csv"
+    latest_file_name =  "./saved_data/" + "latest.csv"
 
     with open(file_name, "w") as f:
+        writer = csv.writer(f, lineterminator="\n")
+        writer.writerows(contents) # csvファイルに書き込み
+
+    with open(latest_file_name, "w") as f:
         writer = csv.writer(f, lineterminator="\n")
         writer.writerows(contents) # csvファイルに書き込み
 
