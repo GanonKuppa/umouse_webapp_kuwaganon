@@ -8,6 +8,11 @@ call forever start -c python serial2mqtt.py
 rem serial2mqtt‚ð‹N“®
 poped
 
+pushd ..\AutoParameterSaver
+call forever start -c python auto_parameter_saver.py
+rem AutoParameterSaver‚ð‹N“®
+poped
+
 
 pushd ..\xinput_gamepad2MQTT_python
 call forever start -c python xinputgamepad2MQTT.py

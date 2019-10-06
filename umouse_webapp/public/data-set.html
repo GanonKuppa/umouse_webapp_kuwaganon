@@ -560,8 +560,8 @@
         0, 0, 0, 0];
       console.log("val: " + val);
       console.log("val_num: " + val_num);
-      cmd_byte[10] = val_num & 0x00FF;
-      cmd_byte[11] = (val_num & 0xFF00) >> 8;
+      cmd_bytes[10] = val_num & 0x00FF;
+      cmd_bytes[11] = (val_num & 0xFF00) >> 8;
 
       switch (type) {
         case 0:
