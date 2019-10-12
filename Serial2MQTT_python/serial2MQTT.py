@@ -166,6 +166,15 @@ def publish_data_loop(client,ser):
                 (buff[i+2]==0x48) and (buff[i+3]==0x45) and \
                 (buff[i+4] == 0x41) and (buff[i+5]==0x44): #and \
                 #(buff[i+message_len] == 0xff) and (buff[i+1+message_len] == 0xff):
+                polution_check = False
+                for j in range(i+6, i+MESSAGE_LEN - 3):
+                    if  (buff[j] == 0xff) and (buff[j+1] == 0xff) and (buff[j+2]==0x48):
+                        buff = buff[j:]
+                        polution_check = True
+                        break
+                if polution_check == True:
+                    break
+
                 start_time = time.time()
                 timestamp_pre = timestamp
                 timestamp = buff[11]
