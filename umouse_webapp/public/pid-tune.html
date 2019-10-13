@@ -62,198 +62,91 @@
 
 
   <script>
+    var BUFF_MAX_SIZE = 6000;
+    var buff_tail_index = 0;
+
     // タイムスタンプ
-    var timestamp_buff = [0];
+    var timestamp_buff = new Array(BUFF_MAX_SIZE).fill(0);
 
     // graph1
     var g1_title = "エンコーダ速度, 相補フィルタ速度, 加速度積分速度, 軌跡ターゲット速度";
     var g1_y_title = "速度[m/s]";
-    var g1_v1_buff = [0]; // v_enc
-    var g1_v2_buff = [0]; // v_comp
-    var g1_v3_buff = [0]; // v_acc
-    var g1_v4_buff = [0]; // v_traj_tg
+    var g1_v1_buff = new Array(BUFF_MAX_SIZE).fill(0); // v_enc
+    var g1_v2_buff = new Array(BUFF_MAX_SIZE).fill(0); // v_comp
+    var g1_v3_buff = new Array(BUFF_MAX_SIZE).fill(0); // v_acc
+    var g1_v4_buff = new Array(BUFF_MAX_SIZE).fill(0); // v_traj_tg
 
     // graph2
     var g2_title = "軌跡ターゲット前加速度, 前加速度, 軌跡ターゲット横加速度 横加速度";
     var g2_y_title = "加速度[m/s/s]";
-    var g2_v1_buff = [0]; // ay_traj_tg
-    var g2_v2_buff = [0]; // ay_sen
-    var g2_v3_buff = [0]; // ax_traj_tg
-    var g2_v4_buff = [0]; // ax_sen
+    var g2_v1_buff = new Array(BUFF_MAX_SIZE).fill(0); // ay_traj_tg
+    var g2_v2_buff = new Array(BUFF_MAX_SIZE).fill(0); // ay_sen
+    var g2_v3_buff = new Array(BUFF_MAX_SIZE).fill(0); // ax_traj_tg
+    var g2_v4_buff = new Array(BUFF_MAX_SIZE).fill(0); // ax_sen
 
     // graph3  
     var g3_title = "エンコーダ角速度, ジャイロ角速度, ターゲット角速度, 軌跡ターゲット角速度";
     var g3_y_title = "角速度[deg/s]";
-    var g3_v1_buff = [0]; // ang_v_enc
-    var g3_v2_buff = [0]; // ang_v_gyro
-    var g3_v3_buff = [0]; // ang_v_tg
-    var g3_v4_buff = [0]; // ang_v_traj_tg
+    var g3_v1_buff = new Array(BUFF_MAX_SIZE).fill(0); // ang_v_enc
+    var g3_v2_buff = new Array(BUFF_MAX_SIZE).fill(0); // ang_v_gyro
+    var g3_v3_buff = new Array(BUFF_MAX_SIZE).fill(0); // ang_v_tg
+    var g3_v4_buff = new Array(BUFF_MAX_SIZE).fill(0); // ang_v_traj_tg
 
     // graph4   
     var g4_title = "軌跡ターゲット角度 ターゲット角度, 角度 推定滑り角";
     var g4_y_title = "角度[deg]";
-    var g4_v1_buff = [0]; // ang_traj_tg
-    var g4_v2_buff = [0]; // ang_tg
-    var g4_v3_buff = [0]; // ang_int_gyro
-    var g4_v4_buff = [0]; // ang_slip
+    var g4_v1_buff = new Array(BUFF_MAX_SIZE).fill(0); // ang_traj_tg
+    var g4_v2_buff = new Array(BUFF_MAX_SIZE).fill(0); // ang_tg
+    var g4_v3_buff = new Array(BUFF_MAX_SIZE).fill(0); // ang_int_gyro
+    var g4_v4_buff = new Array(BUFF_MAX_SIZE).fill(0); // ang_slip
 
     // graph5
     var g5_title = "前左壁センサ, 前右壁センサ, 左壁センサ, 右壁センサ";
     var g5_y_title = "ADC[int16_t]";
-    var g5_v1_buff = [0]; // al_sen
-    var g5_v2_buff = [0]; // ar_sen
-    var g5_v3_buff = [0]; // l_sen
-    var g5_v4_buff = [0]; // r_sen
+    var g5_v1_buff = new Array(BUFF_MAX_SIZE).fill(0); // al_sen
+    var g5_v2_buff = new Array(BUFF_MAX_SIZE).fill(0); // ar_sen
+    var g5_v3_buff = new Array(BUFF_MAX_SIZE).fill(0); // l_sen
+    var g5_v4_buff = new Array(BUFF_MAX_SIZE).fill(0); // r_sen
 
     // graph6
     var g6_title = "duryR, dutyL";
     var g6_y_title = "duty[%]";
-    var g6_v1_buff = [0]; // duty_r
-    var g6_v2_buff = [0]; // duty_l
+    var g6_v1_buff = new Array(BUFF_MAX_SIZE).fill(0); // duty_r
+    var g6_v2_buff = new Array(BUFF_MAX_SIZE).fill(0); // duty_l
 
     // graph7
     var g7_title = "v_pidf出力, v_逆起電力FF, v_加速FF";
     var g7_y_title = "duty[%]";
-    var g7_v1_buff = [0]; // v_pidf
-    var g7_v2_buff = [0]; // v_trans_backemf_FF
-    var g7_v3_buff = [0]; // v_trans_acc_FF
-    var g7_v4_buff = [0]; // v_trans_fric_FF
+    var g7_v1_buff = new Array(BUFF_MAX_SIZE).fill(0); // v_pidf
+    var g7_v2_buff = new Array(BUFF_MAX_SIZE).fill(0); // v_trans_backemf_FF
+    var g7_v3_buff = new Array(BUFF_MAX_SIZE).fill(0); // v_trans_acc_FF
+    var g7_v4_buff = new Array(BUFF_MAX_SIZE).fill(0); // v_trans_fric_FF
 
     // graph8
     var g8_title = "ang_v_pidf出力 ang_v_逆起電力FF, ang_v_角加速FF";
     var g8_y_title = "duty[%]";
-    var g8_v1_buff = [0]; // ang_v_pidf
-    var g8_v2_buff = [0]; // rot_v_backemf_FF
-    var g8_v3_buff = [0]; // rot_v_acc_FF
-    var g8_v4_buff = [0]; // rot_v_fric_FF
+    var g8_v1_buff = new Array(BUFF_MAX_SIZE).fill(0); // ang_v_pidf
+    var g8_v2_buff = new Array(BUFF_MAX_SIZE).fill(0); // rot_v_backemf_FF
+    var g8_v3_buff = new Array(BUFF_MAX_SIZE).fill(0); // rot_v_acc_FF
+    var g8_v4_buff = new Array(BUFF_MAX_SIZE).fill(0); // rot_v_fric_FF
 
 
     // graph9
     var g9_title = "ang_pidf出力";
     var g9_y_title = "角速度目標加算値[deg/s]";
-    var g9_v1_buff = [0]; // ang_pidf
+    var g9_v1_buff = new Array(BUFF_MAX_SIZE).fill(0); // ang_pidf
 
     // graph10
     var g10_title = "pos_pidf出力, wall_pidf出力";
     var g10_y_title = "角度目標加算値[deg]";
-    var g10_v1_buff = [0]; // pos_pidf
-    var g10_v2_buff = [0]; // wall_pidf
+    var g10_v1_buff = new Array(BUFF_MAX_SIZE).fill(0); // pos_pidf
+    var g10_v2_buff = new Array(BUFF_MAX_SIZE).fill(0); // wall_pidf
 
     // データ記録中かどうかのフラグ
     var record_flag = false;
-    function appendDummyData() {
-      for (var i = 0; i < 3000; i++) {
-        timestamp_buff.push(i);
-        g1_v1_buff.push(0);
-        g1_v2_buff.push(0);
-        g1_v3_buff.push(0);
-        g1_v4_buff.push(0);
-        g2_v1_buff.push(0);
-        g2_v2_buff.push(0);
-        g2_v3_buff.push(0);
-        g2_v4_buff.push(0);
-        g3_v1_buff.push(0);
-        g3_v2_buff.push(0);
-        g3_v3_buff.push(0);
-        g3_v4_buff.push(0);
-        g4_v1_buff.push(0);
-        g4_v2_buff.push(0);
-        g4_v3_buff.push(0);
-        g4_v4_buff.push(0);
-        g5_v1_buff.push(0);
-        g5_v2_buff.push(0);
-        g5_v3_buff.push(0);
-        g5_v4_buff.push(0);
-        g6_v1_buff.push(0);
-        g6_v2_buff.push(0);
-        g7_v1_buff.push(0);
-        g7_v2_buff.push(0);
-        g7_v3_buff.push(0);
-        g7_v4_buff.push(0);
-        g8_v1_buff.push(0);
-        g8_v2_buff.push(0);
-        g8_v3_buff.push(0);
-        g8_v4_buff.push(0);
-        g9_v1_buff.push(0);
-        g10_v1_buff.push(0);
-        g10_v2_buff.push(0);
-      }
-    }
-
-    function buffZero(){
-      timestamp_buff = [0];
-      g1_v1_buff = [0];
-      g1_v2_buff = [0];
-      g1_v3_buff = [0];
-      g1_v4_buff = [0];
-      g2_v1_buff = [0];
-      g2_v2_buff = [0];
-      g2_v3_buff = [0];
-      g2_v4_buff = [0];
-      g3_v1_buff = [0];
-      g3_v2_buff = [0];
-      g3_v3_buff = [0];
-      g3_v4_buff = [0];
-      g4_v1_buff = [0];
-      g4_v2_buff = [0];
-      g4_v3_buff = [0];
-      g4_v4_buff = [0];
-      g5_v1_buff = [0];
-      g5_v2_buff = [0];
-      g5_v3_buff = [0];
-      g5_v4_buff = [0];
-      g6_v1_buff = [0];
-      g6_v2_buff = [0];
-      g7_v1_buff = [0];
-      g7_v2_buff = [0];
-      g7_v3_buff = [0];
-      g7_v4_buff = [0];
-      g8_v1_buff = [0];
-      g8_v2_buff = [0];
-      g8_v3_buff = [0];
-      g8_v3_buff = [0];
-      g9_v1_buff = [0];
-      g10_v1_buff = [0];
-      g10_v2_buff = [0];
-
-    }
 
     function buffClear(){
-      timestamp_buff = [];
-      g1_v1_buff = [];
-      g1_v2_buff = [];
-      g1_v3_buff = [];
-      g1_v4_buff = [];
-      g2_v1_buff = [];
-      g2_v2_buff = [];
-      g2_v3_buff = [];
-      g2_v4_buff = [];
-      g3_v1_buff = [];
-      g3_v2_buff = [];
-      g3_v3_buff = [];
-      g3_v4_buff = [];
-      g4_v1_buff = [];
-      g4_v2_buff = [];
-      g4_v3_buff = [];
-      g4_v4_buff = [];
-      g5_v1_buff = [];
-      g5_v2_buff = [];
-      g5_v3_buff = [];
-      g5_v4_buff = [];
-      g6_v1_buff = [];
-      g6_v2_buff = [];
-      g7_v1_buff = [];
-      g7_v2_buff = [];
-      g7_v3_buff = [];
-      g8_v4_buff = [];
-      g8_v1_buff = [];
-      g8_v2_buff = [];
-      g8_v3_buff = [];
-      g8_v4_buff = [];
-      g9_v1_buff = [];
-      g10_v1_buff = [];
-      g10_v2_buff = [];
-
+      buff_tail_index = 0;
     }
 
 
@@ -267,9 +160,9 @@
 
     function recordEnd() {
       record_flag = false;
-      drawGraph();
+      drawGraph();      
       var target = document.getElementById("fadeLayer");
-      target.style.visibility = "hidden";
+      target.style.visibility = "hidden";      
     };
 
     function setVoltage(vol) {
@@ -346,10 +239,10 @@
 
 
     function draw_graph1() {
-      var val_1_data = make_wave_data("v_enc", "rgba(128,128,128,0.5)", g1_v1_buff);
-      var val_2_data = make_wave_data("v_comp", "rgba(0,0,128,0.5)", g1_v2_buff);
-      var val_3_data = make_wave_data("v_acc", "rgba(128,0,128,0.5)", g1_v3_buff);
-      var val_4_data = make_wave_data("v_traj_tg", "rgba(128,128,0,0.5)", g1_v4_buff)
+      var val_1_data = make_wave_data_nogl("v_enc", "rgba(128,128,128,0.5)", g1_v1_buff.slice(0,buff_tail_index));
+      var val_2_data = make_wave_data_nogl("v_comp", "rgba(0,0,128,0.5)", g1_v2_buff.slice(0,buff_tail_index));
+      var val_3_data = make_wave_data_nogl("v_acc", "rgba(128,0,128,0.5)", g1_v3_buff.slice(0,buff_tail_index));
+      var val_4_data = make_wave_data_nogl("v_traj_tg", "rgba(128,128,0,0.5)", g1_v4_buff.slice(0,buff_tail_index))
 
       var data = [val_1_data, val_2_data, val_3_data, val_4_data];
       var layout = make_wave_layout(g1_title, '秒[s]', g1_y_title, "rgba(5, 255, 5, 0.05)");
@@ -359,10 +252,10 @@
     }
 
     function draw_graph2() {
-      var val_1_data = make_wave_data("ay_traj_tg", "rgba(128,128,128,0.5)", g2_v1_buff);
-      var val_2_data = make_wave_data("ay_sen", "rgba(0,0,128,0.5)", g2_v2_buff);
-      var val_3_data = make_wave_data("ax_traj_tg", "rgba(128,0,128,0.5)", g2_v3_buff);
-      var val_4_data = make_wave_data("ax_sen", "rgba(128,128,0,0.5)", g2_v4_buff)
+      var val_1_data = make_wave_data_nogl("ay_traj_tg", "rgba(128,128,128,0.5)", g2_v1_buff.slice(0,buff_tail_index));
+      var val_2_data = make_wave_data_nogl("ay_sen", "rgba(0,0,128,0.5)", g2_v2_buff.slice(0,buff_tail_index));
+      var val_3_data = make_wave_data_nogl("ax_traj_tg", "rgba(128,0,128,0.5)", g2_v3_buff.slice(0,buff_tail_index));
+      var val_4_data = make_wave_data_nogl("ax_sen", "rgba(128,128,0,0.5)", g2_v4_buff.slice(0,buff_tail_index))
 
       var data = [val_1_data, val_2_data, val_3_data, val_4_data];
       var layout = make_wave_layout(g2_title, '秒[s]', g2_y_title, "rgba(5, 255, 5, 0.05)");
@@ -370,10 +263,10 @@
       Plotly.react('graph2', data, layout, { scrollZoom: true });
     }
     function draw_graph3() {
-      var val_1_data = make_wave_data("ang_v_enc", "rgba(128,128,128,0.5)", g3_v1_buff);
-      var val_2_data = make_wave_data("ang_v_gyro", "rgba(0,0,128,0.5)", g3_v2_buff);
-      var val_3_data = make_wave_data("ang_v_tg", "rgba(128,0,128,0.5)", g3_v3_buff);
-      var val_4_data = make_wave_data("ang_v_traj_tg", "rgba(128,128,0,0.5)", g3_v4_buff)
+      var val_1_data = make_wave_data_nogl("ang_v_enc", "rgba(128,128,128,0.5)", g3_v1_buff.slice(0,buff_tail_index));
+      var val_2_data = make_wave_data_nogl("ang_v_gyro", "rgba(0,0,128,0.5)", g3_v2_buff.slice(0,buff_tail_index));
+      var val_3_data = make_wave_data_nogl("ang_v_tg", "rgba(128,0,128,0.5)", g3_v3_buff.slice(0,buff_tail_index));
+      var val_4_data = make_wave_data_nogl("ang_v_traj_tg", "rgba(128,128,0,0.5)", g3_v4_buff.slice(0,buff_tail_index))
 
       var data = [val_1_data, val_2_data, val_3_data, val_4_data];
       var layout = make_wave_layout(g3_title, '秒[s]', g3_y_title, "rgba(5, 5, 255, 0.03)");
@@ -381,10 +274,10 @@
       Plotly.react('graph3', data, layout, { scrollZoom: true });
     };
     function draw_graph4() {
-      var val_1_data = make_wave_data("ang_traj_tg", "rgba(128,128,128,0.5)", g4_v1_buff);
-      var val_2_data = make_wave_data("ang_tg", "rgba(0,0,128,0.5)", g4_v2_buff);
-      var val_3_data = make_wave_data("ang_int_gyro", "rgba(128,0,128,0.5)", g4_v3_buff);
-      var val_4_data = make_wave_data("ang_slip", "rgba(128,128,0,0.5)", g4_v4_buff)
+      var val_1_data = make_wave_data_nogl("ang_traj_tg", "rgba(128,128,128,0.5)", g4_v1_buff.slice(0,buff_tail_index));
+      var val_2_data = make_wave_data_nogl("ang_tg", "rgba(0,0,128,0.5)", g4_v2_buff.slice(0,buff_tail_index));
+      var val_3_data = make_wave_data_nogl("ang_int_gyro", "rgba(128,0,128,0.5)", g4_v3_buff.slice(0,buff_tail_index));
+      var val_4_data = make_wave_data_nogl("ang_slip", "rgba(128,128,0,0.5)", g4_v4_buff.slice(0,buff_tail_index))
 
       var data = [val_1_data, val_2_data, val_3_data, val_4_data];
       var layout = make_wave_layout(g4_title, '秒[s]', g4_y_title, "rgba(5, 5, 255, 0.03)");
@@ -392,10 +285,10 @@
       Plotly.react('graph4', data, layout, { scrollZoom: true });
     };
     function draw_graph5() {
-      var val_1_data = make_wave_data("al_sen", "rgba(128,128,128,0.5)", g5_v1_buff);
-      var val_2_data = make_wave_data("ar_sen", "rgba(0,0,128,0.5)", g5_v2_buff);
-      var val_3_data = make_wave_data("l_sen", "rgba(128,0,128,0.5)", g5_v3_buff);
-      var val_4_data = make_wave_data("r_sen", "rgba(128,128,0,0.5)", g5_v4_buff)
+      var val_1_data = make_wave_data_nogl("al_sen", "rgba(128,128,128,0.5)", g5_v1_buff.slice(0,buff_tail_index));
+      var val_2_data = make_wave_data_nogl("ar_sen", "rgba(0,0,128,0.5)", g5_v2_buff.slice(0,buff_tail_index));
+      var val_3_data = make_wave_data_nogl("l_sen", "rgba(128,0,128,0.5)", g5_v3_buff.slice(0,buff_tail_index));
+      var val_4_data = make_wave_data_nogl("r_sen", "rgba(128,128,0,0.5)", g5_v4_buff.slice(0,buff_tail_index))
 
       var data = [val_1_data, val_2_data, val_3_data, val_4_data];
       var layout = make_wave_layout(g5_title, '秒[s]', g5_y_title, "rgba(255, 255, 255, 0.3)");
@@ -403,8 +296,8 @@
       Plotly.react('graph5', data, layout, { scrollZoom: true });
     };
     function draw_graph6() {
-      var val_1_data = make_wave_data("dutyR", "rgba(128,0,128,0.5)", g6_v1_buff);
-      var val_2_data = make_wave_data("dutyL", "rgba(0,0,128,0.5)", g6_v2_buff);
+      var val_1_data = make_wave_data_nogl("dutyR", "rgba(128,0,128,0.5)", g6_v1_buff.slice(0,buff_tail_index));
+      var val_2_data = make_wave_data_nogl("dutyL", "rgba(0,0,128,0.5)", g6_v2_buff.slice(0,buff_tail_index));
 
       var data = [val_1_data, val_2_data];
       var layout = make_wave_layout(g6_title, '秒[s]', g6_y_title, "rgba(255, 255, 5, 0.05)");
@@ -412,10 +305,10 @@
       Plotly.react('graph6', data, layout, { scrollZoom: true });
     };
     function draw_graph7() {
-      var val_1_data = make_wave_data("v_pidf", "rgba(128,128,128,0.5)", g7_v1_buff);
-      var val_2_data = make_wave_data("v_backemf_FF", "rgba(0,0,128,0.5)", g7_v2_buff);
-      var val_3_data = make_wave_data("v_trans_acc_FF", "rgba(128,0,128,0.5)", g7_v3_buff);
-      var val_4_data = make_wave_data("v_trans_fric_FF", "rgba(128,0,0,0.5)", g7_v4_buff);
+      var val_1_data = make_wave_data_nogl("v_pidf", "rgba(128,128,128,0.5)", g7_v1_buff.slice(0,buff_tail_index));
+      var val_2_data = make_wave_data_nogl("v_backemf_FF", "rgba(0,0,128,0.5)", g7_v2_buff.slice(0,buff_tail_index));
+      var val_3_data = make_wave_data_nogl("v_trans_acc_FF", "rgba(128,0,128,0.5)", g7_v3_buff.slice(0,buff_tail_index));
+      var val_4_data = make_wave_data_nogl("v_trans_fric_FF", "rgba(128,0,0,0.5)", g7_v4_buff.slice(0,buff_tail_index));
 
       var data = [val_1_data, val_2_data, val_3_data, val_4_data];
       var layout = make_wave_layout(g7_title, '秒[s]', g7_y_title, "rgba(255, 255, 5, 0.05)");
@@ -423,10 +316,10 @@
       Plotly.react('graph7', data, layout, { scrollZoom: true });
     };
     function draw_graph8() {
-      var val_1_data = make_wave_data("ang_v_pidf", "rgba(128,128,128,0.5)", g8_v1_buff);
-      var val_2_data = make_wave_data("rot_v_backemf_FF", "rgba(0,0,128,0.5)", g8_v2_buff);
-      var val_3_data = make_wave_data("rot_v_acc_FF", "rgba(128,0,128,0.5)", g8_v3_buff);
-      var val_4_data = make_wave_data("rot_v_fric_FF", "rgba(128,0,0,0.5)", g8_v4_buff);
+      var val_1_data = make_wave_data_nogl("ang_v_pidf", "rgba(128,128,128,0.5)", g8_v1_buff.slice(0,buff_tail_index));
+      var val_2_data = make_wave_data_nogl("rot_v_backemf_FF", "rgba(0,0,128,0.5)", g8_v2_buff.slice(0,buff_tail_index));
+      var val_3_data = make_wave_data_nogl("rot_v_acc_FF", "rgba(128,0,128,0.5)", g8_v3_buff.slice(0,buff_tail_index));
+      var val_4_data = make_wave_data_nogl("rot_v_fric_FF", "rgba(128,0,0,0.5)", g8_v4_buff.slice(0,buff_tail_index));
 
       var data = [val_1_data, val_2_data, val_3_data, val_4_data];
       var layout = make_wave_layout(g8_title, '秒[s]', g8_y_title, "rgba(255, 255, 5, 0.05)");
@@ -434,7 +327,7 @@
       Plotly.react('graph8', data, layout, { scrollZoom: true });
     };
     function draw_graph9() {
-      var val_1_data = make_wave_data_nogl("ang_pidf", "rgba(128,128,128,0.5)", g9_v1_buff);
+      var val_1_data = make_wave_data_nogl("ang_pidf", "rgba(128,128,128,0.5)", g9_v1_buff.slice(0,buff_tail_index));
 
       var data = [val_1_data];
       var layout = make_wave_layout(g9_title, '秒[s]', g9_y_title, "rgba(255, 255, 255, 0.3)");
@@ -442,8 +335,8 @@
       Plotly.react('graph9', data, layout, { scrollZoom: true });
     };
     function draw_graph10() {
-      var val_1_data = make_wave_data_nogl("pos_pidf", "rgba(128,128,128,0.5)", g10_v1_buff);
-      var val_2_data = make_wave_data_nogl("wall_pidf", "rgba(0,0,128,0.5)", g10_v2_buff);
+      var val_1_data = make_wave_data_nogl("pos_pidf", "rgba(128,128,128,0.5)", g10_v1_buff.slice(0,buff_tail_index));
+      var val_2_data = make_wave_data_nogl("wall_pidf", "rgba(0,0,128,0.5)", g10_v2_buff.slice(0,buff_tail_index));
 
       var data = [val_1_data, val_2_data];
       var layout = make_wave_layout(g10_title, '秒[s]', g10_y_title, "rgba(255, 255, 255, 0.3)");
@@ -466,8 +359,8 @@
     }
 
 
-    function initGraph() {
-      buffZero();
+    function initGraph() {      
+      buff_tail_index = 0;
       drawGraph();
     }
 
@@ -486,14 +379,14 @@
     let s = io.connect('http://' + server_ip + ':' + server_port, { transports: ['websocket'] });
 
     s.on("mqtt_message", function (data) {
-      //console.log(data);
-      if (data.topic != "mouse") return;
-      payload = data.payload;
+      if (data.topic != "mouse") return;     
+      payload = data.payload;      
       let data_view = new DataView(payload);
-      let intList = [];
+      let intList = new Array(message_len);
       for (let i = 0; i < message_len; i = i + 1) {
-        intList.push(data_view.getUint8(i, true));
+        intList[i] = data_view.getUint8(i, true);
       }
+      //console.log(intList);
       reflectData(intList);
 
     });
@@ -505,7 +398,7 @@
       for (let i = 7; i < message_len; i++) sum += intList[i];
       sum = sum % 256;
       if (sum != intList[6]) {
-        console.log("chksum err" + intList[6] + "  " + sum);
+//        console.log("chksum err" + intList[6] + "  " + sum);
         return;
       }
       
@@ -513,13 +406,13 @@
       // Voltage timestamp
       let voltage = parseVoltage(intList);
       let time = parseTime(intList);
-
+      
       // graph1
       let v_enc = parseMouseV(intList);
       let v_comp = parseVComp(intList); //o
       let v_acc = parseVAcc(intList); //o
       let v_traj_tg = parseTargetV(intList);
-
+      
       // graph2
       let ay_tarj_tg = parseTargetAy(intList);  //o
       let ay_sen = parseAy(intList); //o
@@ -570,50 +463,50 @@
 
 
       if(record_flag == true){
-        timestamp_buff.push(time); //timestamp
-        g1_v1_buff.push(v_enc); // v_enc
-        g1_v2_buff.push(v_comp); // v_comp
-        g1_v3_buff.push(v_acc); // v_acc
-        g1_v4_buff.push(v_traj_tg); // v_traj_tg
+        timestamp_buff[buff_tail_index] = time; //timestamp
+        g1_v1_buff[buff_tail_index] = v_enc; // v_enc
+        g1_v2_buff[buff_tail_index] = v_comp; // v_comp
+        g1_v3_buff[buff_tail_index] = v_acc; // v_acc
+        g1_v4_buff[buff_tail_index] = v_traj_tg; // v_traj_tg
 
-        g2_v1_buff.push(ay_tarj_tg); // ay_traj_tg
-        g2_v2_buff.push(ay_sen); // ay_sen
-        g2_v3_buff.push(ax_traj_tg); // ax_traj_tg
-        g2_v4_buff.push(ax_sen); // ax_sen
+        g2_v1_buff[buff_tail_index] = ay_tarj_tg; // ay_traj_tg
+        g2_v2_buff[buff_tail_index] = ay_sen; // ay_sen
+        g2_v3_buff[buff_tail_index] = ax_traj_tg; // ax_traj_tg
+        g2_v4_buff[buff_tail_index] = ax_sen; // ax_sen
 
-        g3_v1_buff.push(ang_v_enc); // ang_v_enc
-        g3_v2_buff.push(ang_v_gyro); // ang_v_gyro
-        g3_v3_buff.push(ang_v_tg); // ang_v_tg
-        g3_v4_buff.push(ang_v_traj_tg); // ang_v_traj_tg
+        g3_v1_buff[buff_tail_index] = ang_v_enc; // ang_v_enc
+        g3_v2_buff[buff_tail_index] = ang_v_gyro; // ang_v_gyro
+        g3_v3_buff[buff_tail_index] = ang_v_tg; // ang_v_tg
+        g3_v4_buff[buff_tail_index] = ang_v_traj_tg; // ang_v_traj_tg
 
-        g4_v1_buff.push(ang_traj_tg); // ang_traj_tg
-        g4_v2_buff.push(ang_tg); // ang_tg
-        g4_v3_buff.push(ang_int_gyro); // ang_int_gyro
-        g4_v4_buff.push(ang_slip); // ang_slip        
+        g4_v1_buff[buff_tail_index] = ang_traj_tg; // ang_traj_tg
+        g4_v2_buff[buff_tail_index] = ang_tg; // ang_tg
+        g4_v3_buff[buff_tail_index] = ang_int_gyro; // ang_int_gyro
+        g4_v4_buff[buff_tail_index] = ang_slip; // ang_slip        
 
-        g5_v1_buff.push(lf); // al_sen
-        g5_v2_buff.push(rf); // ar_sen
-        g5_v3_buff.push(l); // l_sen
-        g5_v4_buff.push(r); // r_sen
+        g5_v1_buff[buff_tail_index] = lf; // al_sen
+        g5_v2_buff[buff_tail_index] = rf; // ar_sen
+        g5_v3_buff[buff_tail_index] = l; // l_sen
+        g5_v4_buff[buff_tail_index] = r; // r_sen
         
-        g6_v1_buff.push(dutyR); // dutyR
-        g6_v2_buff.push(dutyL); // dutyL
+        g6_v1_buff[buff_tail_index] = dutyR; // dutyR
+        g6_v2_buff[buff_tail_index] = dutyL; // dutyL
 
-        g7_v1_buff.push(v_pidf); // v_pidf
-        g7_v2_buff.push(v_trans_backemf_FF); // v_trans_backemf_FF
-        g7_v3_buff.push(v_trans_acc_FF); // v_trans_acc_FF
-        g7_v4_buff.push(v_trans_fric_FF); // v_trans_fric_FF
+        g7_v1_buff[buff_tail_index] = v_pidf; // v_pidf
+        g7_v2_buff[buff_tail_index] = v_trans_backemf_FF; // v_trans_backemf_FF
+        g7_v3_buff[buff_tail_index] = v_trans_acc_FF; // v_trans_acc_FF
+        g7_v4_buff[buff_tail_index] = v_trans_fric_FF; // v_trans_fric_FF
 
-        g8_v1_buff.push(ang_v_pidf); // ang_v_pidf
-        g8_v2_buff.push(rot_v_backemf_FF); // rot_v_backemf_FF
-        g8_v3_buff.push(rot_v_acc_FF); // rot_v_acc_FF
-        g8_v4_buff.push(rot_v_fric_FF); // rot_v_fric_FF
+        g8_v1_buff[buff_tail_index] = ang_v_pidf; // ang_v_pidf
+        g8_v2_buff[buff_tail_index] = rot_v_backemf_FF; // rot_v_backemf_FF
+        g8_v3_buff[buff_tail_index] = rot_v_acc_FF; // rot_v_acc_FF
+        g8_v4_buff[buff_tail_index] = rot_v_fric_FF; // rot_v_fric_FF
 
-        g9_v1_buff.push(ang_pidf); // ang_pidf
+        g9_v1_buff[buff_tail_index] = ang_pidf; // ang_pidf
 
-        g10_v1_buff.push(pos_pidf); // pos_pidf
-        g10_v2_buff.push(wall_pidf); // wall_pidf
-
+        g10_v1_buff[buff_tail_index] = pos_pidf; // pos_pidf
+        g10_v2_buff[buff_tail_index] = wall_pidf; // wall_pidf
+        buff_tail_index = (buff_tail_index + 1) % BUFF_MAX_SIZE;
       }
 
       setVoltage(voltage);

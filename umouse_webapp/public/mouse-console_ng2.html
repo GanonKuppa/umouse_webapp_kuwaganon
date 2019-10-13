@@ -34,7 +34,7 @@
     var logno_message = 0;
     var scroll_flag = false;
     var logno_console = 0;
-    var message_len = 400;
+    var message_len = 240;
 
 
 
@@ -257,7 +257,7 @@
 
             for (var i = 0; i < intList[7]; i++) {
 
-              if (intList[message_len - 60 + i] == 10) {  //10はLFの文字コードです。
+              if (intList[message_len - 20 + i] == 10) {  //10はLFの文字コードです。
                 //console.log("LF");
                 //console.log(utf8_hex_string_to_string(msg));
                 //console.log(msg);
@@ -274,8 +274,8 @@
                 msg = "";
                 last_msg = "";
               } else {
-                msg += intList[message_len - 60 + i].toString(16);
-                last_msg += intList[message_len - 60 + i].toString(16);
+                msg += intList[message_len - 20 + i].toString(16);
+                last_msg += intList[message_len - 20 + i].toString(16);
               }
             }
 
