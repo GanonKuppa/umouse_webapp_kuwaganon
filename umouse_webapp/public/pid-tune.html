@@ -239,10 +239,10 @@
 
 
     function draw_graph1() {
-      var val_1_data = make_wave_data_nogl("v_enc", "rgba(128,128,128,0.5)", g1_v1_buff.slice(0,buff_tail_index));
-      var val_2_data = make_wave_data_nogl("v_comp", "rgba(0,0,128,0.5)", g1_v2_buff.slice(0,buff_tail_index));
-      var val_3_data = make_wave_data_nogl("v_acc", "rgba(128,0,128,0.5)", g1_v3_buff.slice(0,buff_tail_index));
-      var val_4_data = make_wave_data_nogl("v_traj_tg", "rgba(128,128,0,0.5)", g1_v4_buff.slice(0,buff_tail_index))
+      var val_1_data = make_wave_data("v_enc", "rgba(128,128,128,0.5)", g1_v1_buff.slice(0,buff_tail_index));
+      var val_2_data = make_wave_data("v_comp", "rgba(0,0,128,0.5)", g1_v2_buff.slice(0,buff_tail_index));
+      var val_3_data = make_wave_data("v_acc", "rgba(128,0,128,0.5)", g1_v3_buff.slice(0,buff_tail_index));
+      var val_4_data = make_wave_data("v_traj_tg", "rgba(128,128,0,0.5)", g1_v4_buff.slice(0,buff_tail_index))
 
       var data = [val_1_data, val_2_data, val_3_data, val_4_data];
       var layout = make_wave_layout(g1_title, '秒[s]', g1_y_title, "rgba(5, 255, 5, 0.05)");
@@ -252,10 +252,10 @@
     }
 
     function draw_graph2() {
-      var val_1_data = make_wave_data_nogl("ay_traj_tg", "rgba(128,128,128,0.5)", g2_v1_buff.slice(0,buff_tail_index));
-      var val_2_data = make_wave_data_nogl("ay_sen", "rgba(0,0,128,0.5)", g2_v2_buff.slice(0,buff_tail_index));
-      var val_3_data = make_wave_data_nogl("ax_traj_tg", "rgba(128,0,128,0.5)", g2_v3_buff.slice(0,buff_tail_index));
-      var val_4_data = make_wave_data_nogl("ax_sen", "rgba(128,128,0,0.5)", g2_v4_buff.slice(0,buff_tail_index))
+      var val_1_data = make_wave_data("ay_traj_tg", "rgba(128,128,128,0.5)", g2_v1_buff.slice(0,buff_tail_index));
+      var val_2_data = make_wave_data("ay_sen", "rgba(0,0,128,0.5)", g2_v2_buff.slice(0,buff_tail_index));
+      var val_3_data = make_wave_data("ax_traj_tg", "rgba(128,0,128,0.5)", g2_v3_buff.slice(0,buff_tail_index));
+      var val_4_data = make_wave_data("ax_sen", "rgba(128,128,0,0.5)", g2_v4_buff.slice(0,buff_tail_index))
 
       var data = [val_1_data, val_2_data, val_3_data, val_4_data];
       var layout = make_wave_layout(g2_title, '秒[s]', g2_y_title, "rgba(5, 255, 5, 0.05)");
@@ -263,10 +263,10 @@
       Plotly.react('graph2', data, layout, { scrollZoom: true });
     }
     function draw_graph3() {
-      var val_1_data = make_wave_data_nogl("ang_v_enc", "rgba(128,128,128,0.5)", g3_v1_buff.slice(0,buff_tail_index));
-      var val_2_data = make_wave_data_nogl("ang_v_gyro", "rgba(0,0,128,0.5)", g3_v2_buff.slice(0,buff_tail_index));
-      var val_3_data = make_wave_data_nogl("ang_v_tg", "rgba(128,0,128,0.5)", g3_v3_buff.slice(0,buff_tail_index));
-      var val_4_data = make_wave_data_nogl("ang_v_traj_tg", "rgba(128,128,0,0.5)", g3_v4_buff.slice(0,buff_tail_index))
+      var val_1_data = make_wave_data("ang_v_enc", "rgba(128,128,128,0.5)", g3_v1_buff.slice(0,buff_tail_index));
+      var val_2_data = make_wave_data("ang_v_gyro", "rgba(0,0,128,0.5)", g3_v2_buff.slice(0,buff_tail_index));
+      var val_3_data = make_wave_data("ang_v_tg", "rgba(128,0,128,0.5)", g3_v3_buff.slice(0,buff_tail_index));
+      var val_4_data = make_wave_data("ang_v_traj_tg", "rgba(128,128,0,0.5)", g3_v4_buff.slice(0,buff_tail_index))
 
       var data = [val_1_data, val_2_data, val_3_data, val_4_data];
       var layout = make_wave_layout(g3_title, '秒[s]', g3_y_title, "rgba(5, 5, 255, 0.03)");
@@ -305,10 +305,10 @@
       Plotly.react('graph6', data, layout, { scrollZoom: true });
     };
     function draw_graph7() {
-      var val_1_data = make_wave_data_nogl("v_pidf", "rgba(128,128,128,0.5)", g7_v1_buff.slice(0,buff_tail_index));
-      var val_2_data = make_wave_data_nogl("v_backemf_FF", "rgba(0,0,128,0.5)", g7_v2_buff.slice(0,buff_tail_index));
-      var val_3_data = make_wave_data_nogl("v_trans_acc_FF", "rgba(128,0,128,0.5)", g7_v3_buff.slice(0,buff_tail_index));
-      var val_4_data = make_wave_data_nogl("v_trans_fric_FF", "rgba(128,0,0,0.5)", g7_v4_buff.slice(0,buff_tail_index));
+      var val_1_data = make_wave_data("v_pidf", "rgba(128,128,128,0.5)", g7_v1_buff.slice(0,buff_tail_index));
+      var val_2_data = make_wave_data("v_backemf_FF", "rgba(0,0,128,0.5)", g7_v2_buff.slice(0,buff_tail_index));
+      var val_3_data = make_wave_data("v_trans_acc_FF", "rgba(128,0,128,0.5)", g7_v3_buff.slice(0,buff_tail_index));
+      var val_4_data = make_wave_data("v_trans_fric_FF", "rgba(128,0,0,0.5)", g7_v4_buff.slice(0,buff_tail_index));
 
       var data = [val_1_data, val_2_data, val_3_data, val_4_data];
       var layout = make_wave_layout(g7_title, '秒[s]', g7_y_title, "rgba(255, 255, 5, 0.05)");
@@ -316,10 +316,10 @@
       Plotly.react('graph7', data, layout, { scrollZoom: true });
     };
     function draw_graph8() {
-      var val_1_data = make_wave_data_nogl("ang_v_pidf", "rgba(128,128,128,0.5)", g8_v1_buff.slice(0,buff_tail_index));
-      var val_2_data = make_wave_data_nogl("rot_v_backemf_FF", "rgba(0,0,128,0.5)", g8_v2_buff.slice(0,buff_tail_index));
-      var val_3_data = make_wave_data_nogl("rot_v_acc_FF", "rgba(128,0,128,0.5)", g8_v3_buff.slice(0,buff_tail_index));
-      var val_4_data = make_wave_data_nogl("rot_v_fric_FF", "rgba(128,0,0,0.5)", g8_v4_buff.slice(0,buff_tail_index));
+      var val_1_data = make_wave_data("ang_v_pidf", "rgba(128,128,128,0.5)", g8_v1_buff.slice(0,buff_tail_index));
+      var val_2_data = make_wave_data("rot_v_backemf_FF", "rgba(0,0,128,0.5)", g8_v2_buff.slice(0,buff_tail_index));
+      var val_3_data = make_wave_data("rot_v_acc_FF", "rgba(128,0,128,0.5)", g8_v3_buff.slice(0,buff_tail_index));
+      var val_4_data = make_wave_data("rot_v_fric_FF", "rgba(128,0,0,0.5)", g8_v4_buff.slice(0,buff_tail_index));
 
       var data = [val_1_data, val_2_data, val_3_data, val_4_data];
       var layout = make_wave_layout(g8_title, '秒[s]', g8_y_title, "rgba(255, 255, 5, 0.05)");
