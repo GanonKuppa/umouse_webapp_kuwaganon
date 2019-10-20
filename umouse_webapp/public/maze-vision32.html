@@ -148,7 +148,7 @@
 
 
       if (intList[160] == 0) {
-        for (let i = 0; i < 16; i++) {
+        for (let i = 0; i < 8; i++) {
           byte0 = intList[161 + i * 4 + 0];
           byte1 = intList[161 + i * 4 + 1];
           byte2 = intList[161 + i * 4 + 2];
@@ -161,7 +161,21 @@
       }
 
       if (intList[160] == 1) {
-        for (let i = 0; i < 15; i++) {
+        for (let i = 8; i < 16; i++) {
+          byte0 = intList[161 + (i-8) * 4 + 0];
+          byte1 = intList[161 + (i-8) * 4 + 1];
+          byte2 = intList[161 + (i-8) * 4 + 2];
+          byte3 = intList[161 + (i-8) * 4 + 3];
+          bitList = byte4to32bit(byte0, byte1, byte2, byte3);
+          for (let j = 0; j < 32; j++) {
+            walls_vertical[i + 1][j].visible = (bitList[j] == 1 ? true : false);
+          }
+        }
+      }
+
+
+      if (intList[160] == 2) {
+        for (let i = 0; i < 8; i++) {
           byte0 = intList[161 + i * 4 + 0];
           byte1 = intList[161 + i * 4 + 1];
           byte2 = intList[161 + i * 4 + 2];
@@ -173,8 +187,22 @@
         }
       }
 
-      if (intList[160] == 2) {
-        for (let i = 0; i < 16; i++) {
+      if (intList[160] == 3) {
+        for (let i = 8; i < 15; i++) {
+          byte0 = intList[161 + (i-8) * 4 + 0];
+          byte1 = intList[161 + (i-8) * 4 + 1];
+          byte2 = intList[161 + (i-8) * 4 + 2];
+          byte3 = intList[161 + (i-8) * 4 + 3];
+          bitList = byte4to32bit(byte0, byte1, byte2, byte3);
+          for (let j = 0; j < 32; j++) {
+            walls_vertical[i + 17][j].visible = bitList[j] == 1 ? true : false;
+          }
+        }
+      }
+
+
+      if (intList[160] == 4) {
+        for (let i = 0; i < 8; i++) {
           byte0 = intList[161 + i * 4 + 0];
           byte1 = intList[161 + i * 4 + 1];
           byte2 = intList[161 + i * 4 + 2];
@@ -186,8 +214,21 @@
         }
       }
 
-      if (intList[160] == 3) {
-        for (let i = 0; i < 15; i++) {
+      if (intList[160] == 5) {
+        for (let i = 8; i < 16; i++) {
+          byte0 = intList[161 + (i-8) * 4 + 0];
+          byte1 = intList[161 + (i-8) * 4 + 1];
+          byte2 = intList[161 + (i-8) * 4 + 2];
+          byte3 = intList[161 + (i-8) * 4 + 3];
+          bitList = byte4to32bit(byte0, byte1, byte2, byte3);
+          for (let j = 0; j < 32; j++) {
+            walls_horizontal[i + 1][j].visible = bitList[j] == 1 ? true : false;
+          }
+        }
+      }
+
+      if (intList[160] == 6) {
+        for (let i = 0; i < 8; i++) {
           byte0 = intList[161 + i * 4 + 0];
           byte1 = intList[161 + i * 4 + 1];
           byte2 = intList[161 + i * 4 + 2];
@@ -198,6 +239,20 @@
           }
         }
       }
+
+      if (intList[160] == 7) {
+        for (let i = 8; i < 15; i++) {
+          byte0 = intList[161 + (i-8) * 4 + 0];
+          byte1 = intList[161 + (i-8) * 4 + 1];
+          byte2 = intList[161 + (i-8) * 4 + 2];
+          byte3 = intList[161 + (i-8) * 4 + 3];
+          bitList = byte4to32bit(byte0, byte1, byte2, byte3);
+          for (let j = 0; j < 32; j++) {
+            walls_horizontal[i + 17][j].visible = bitList[j] == 1 ? true : false;
+          }
+        }
+      }
+
 
       let mouse_x = parseMouseX(intList);
       let mouse_y = parseMouseY(intList);

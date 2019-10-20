@@ -492,10 +492,10 @@
         console.log("chksum err" + intList[6] + "  " + sum);
         return;
       }
-      var part_num = intList[192];
+      var part_num = intList[193];
       for (var i = 0; i < 5; i++) {
         var var_num = part_num * 5 + i;
-        var type_index_num = 192 + 2 + i * 5;
+        var type_index_num = 193 + 2 + i * 5;
         var val_index_num = type_index_num + 1;
         var buffer = new ArrayBuffer(4);
         var int8View = new Int8Array(buffer);
